@@ -4,22 +4,22 @@ Input is the cleaned JSONL from `utils/clean_data.py` (data/cleaned/options.json
 
 Workflow (manual mode — recommended for the first batch):
   Single post:
-    1) `python utils/auto_label.py --post-index 0 --print-prompt > prompt.txt`
+    1) `python -m utils.synthetic.auto_label --post-index 0 --print-prompt > prompt.txt`
     2) Paste prompt.txt into your LLM, save the JSON reply as response.json
-    3) `python utils/auto_label.py --post-index 0 --response-file response.json`
+    3) `python -m utils.synthetic.auto_label --post-index 0 --response-file response.json`
 
   Batch (recommended for long-context models like Gemini):
-    1) `python utils/auto_label.py --posts 0-9 --print-prompt > prompt.txt`
+    1) `python -m utils.synthetic.auto_label --posts 0-9 --print-prompt > prompt.txt`
     2) Paste prompt.txt into the LLM, save the JSON reply as response.json
-    3) `python utils/auto_label.py --posts 0-9 --response-file response.json`
+    3) `python -m utils.synthetic.auto_label --posts 0-9 --response-file response.json`
 
   The batch output shape is `{"results": [{"index": N, "entities": [...]}, ...]}`
   with one entry per input. Re-running with the same --posts overwrites those
   task IDs rather than duplicating them.
 
   Interactive mode (loop through everything without juggling files):
-    `python utils/auto_label.py --interactive [--batch-size 10]`
-    `python utils/auto_label.py --interactive --batch-chars 40000`
+    `python -m utils.synthetic.auto_label --interactive [--batch-size 10]`
+    `python -m utils.synthetic.auto_label --interactive --batch-chars 40000`
     Each round writes the prompt to --prompt-file (default
     data/auto_label/prompt.txt); copy it into your LLM, paste the JSON reply
     back in the terminal, then type END on its own line (or `q` to quit).
@@ -55,7 +55,8 @@ import sys
 import textwrap
 import uuid
 
-from hf_utils import read_jsonl
+from src.core.spans import bounded_pattern
+from utils.hf.hf_utils import read_jsonl
 from rich.console import Console
 
 console = Console()
@@ -281,30 +282,6 @@ def _region_id():
     return uuid.uuid4().hex[:10]
 
 
-def _bounded_pattern(ent_text):
-    """Regex for `ent_text` that refuses to match inside a longer token.
-
-    Boundaries depend on the character class at each end: a letter-edge must not
-    touch another letter (so "C" skips "$COIN" but matches "210C"), a digit-edge
-    must not touch another digit or a decimal continuation (so "350" skips
-    "$3500" and "1" skips "$1.2M"). Other edges ("$", "/") are unconstrained.
-    """
-    first, last = ent_text[0], ent_text[-1]
-    if first.isalpha():
-        left = r"(?<![A-Za-z])"
-    elif first.isdigit() or first == ".":
-        left = r"(?<!\d)(?<!\d\.)"
-    else:
-        left = ""
-    if last.isalpha():
-        right = r"(?![A-Za-z])"
-    elif last.isdigit():
-        right = r"(?!\d)(?!\.\d)"
-    else:
-        right = ""
-    return left + re.escape(ent_text) + right
-
-
 def _locate_entities(text, entities):
     """Map LLM ``(text, label)`` entries to non-overlapping ``(start, end, ...)`` spans.
 
@@ -323,7 +300,7 @@ def _locate_entities(text, entities):
             continue
         free = [
             m
-            for m in re.finditer(_bounded_pattern(ent_text), text)
+            for m in re.finditer(bounded_pattern(ent_text), text)
             if not any(m.start() < e and s < m.end() for s, e, _, _ in spans)
         ]
         if not free:

@@ -1,0 +1,11 @@
+<View>
+  <Labels name="label" toName="text">
+    <Label value="ticker" background="#FFA39E"/>
+    <Label value="strike" background="#91BAF8"/>
+    <Label value="option_type" background="#B7EB8F"/>
+    <Label value="expiry" background="#FFD666"/>
+    <Label value="premium" background="#D3ADF7"/>
+    <Label value="price" background="#87E8DE"/>
+  </Labels>
+  <Text name="text" value="$text"/>
+</View>

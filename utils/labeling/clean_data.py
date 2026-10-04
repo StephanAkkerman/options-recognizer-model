@@ -1,8 +1,8 @@
 """Clean the scraped options tweets and (optionally) publish them to Hugging Face.
 
-    python utils/clean_data.py
-    python utils/clean_data.py --max-per-template 0           # keep every template row
-    python utils/clean_data.py --push user/options-tweets     # private repo by default
+    python -m utils.labeling.clean_data
+    python -m utils.labeling.clean_data --max-per-template 0           # keep every template row
+    python -m utils.labeling.clean_data --push user/options-tweets     # private repo by default
 
 Input is the JSONL exported from fintwit-web (data/raw/json/o.jsonl). Output is
 a slimmed-down JSONL with only the fields needed for labeling, in
@@ -21,8 +21,9 @@ import html
 import re
 from collections import Counter
 
-from hf_utils import push_dataset, read_jsonl, write_jsonl
 from rich.console import Console
+
+from utils.hf.hf_utils import push_dataset, read_jsonl, write_jsonl
 
 console = Console()
 

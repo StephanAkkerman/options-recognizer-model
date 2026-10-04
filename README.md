@@ -44,6 +44,23 @@ pip install git+https://github.com/StephanAkkerman/template.git
 
 ## Usage ⌨️
 
+Run everything from the repo root with `python -m` (needs `pip install -r requirements.txt`; training also needs `requirements-train.txt`).
+
+| Step | Command |
+|---|---|
+| Clean scraped tweets (`data/raw/json/o.jsonl` → `data/cleaned/options.jsonl`) | `python -m utils.labeling.clean_data` |
+| Publish the raw texts to the Hub | `python -m utils.labeling.clean_data --push user/options-tweets` |
+| Pre-label with an LLM | `python -m utils.synthetic.auto_label --interactive` |
+| Review in Label Studio | import `data/preds/*.json`, config in `data/label_studio.xml`, export to `data/labeled/` |
+| Check for duplicate tasks | `python -m utils.labeling.check_labeled_duplicates` |
+| Hold out a test set | `python -m src.maintenance.split_test_set` |
+| Train a GLiNER2 LoRA adapter (also splits, benchmarks) | `python -m src.core.train` |
+| Benchmark adapters (exact-span F1, cached) | `python -m src.core.benchmark [--all]` |
+| Inspect errors / sweep thresholds / compare descriptions | `python -m src.analysis.error_analysis`, `threshold_sweep`, `validate_descriptions` |
+| Publish labeled data / adapter | `python -m utils.hf.push_dataset_to_hf --repo-id ...`, `python -m utils.hf.push_model_to_hf ...` |
+
+The entity labels and their GLiNER2 descriptions live in `src/core/labels.py`.
+
 ## Citation ✍️
 <!-- Be sure to adjust everything here so it matches your name and repo -->
 If you use this project in your research, please cite as follows:

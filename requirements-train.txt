@@ -1,0 +1,7 @@
+-r requirements.txt
+gliner2[local]
+torch
+transformers
+safetensors
+datasets
+numpy

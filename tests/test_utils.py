@@ -1,8 +1,13 @@
 import json
 
-from auto_label import FEW_SHOT_EXAMPLES, LABELS, build_prompt, parse_response_to_task
-from clean_data import clean_records, clean_text, template_key
-from hf_utils import build_dataset_card, read_jsonl, write_jsonl
+from utils.synthetic.auto_label import (
+    FEW_SHOT_EXAMPLES,
+    LABELS,
+    build_prompt,
+    parse_response_to_task,
+)
+from utils.labeling.clean_data import clean_records, clean_text, template_key
+from utils.hf.hf_utils import build_dataset_card, read_jsonl, write_jsonl
 
 
 def _spans(text, entities):
