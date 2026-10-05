@@ -91,482 +91,712 @@ Example 8
 Input: Fed meeting tomorrow, market looks shaky. Staying in cash. NFA
 Output: {"entities": []}
 
-Now label the following 96 inputs. Return ONE JSON object with a 'results' array as described above.
+Now label the following 92 inputs. Return ONE JSON object with a 'results' array as described above.
 
-Input 1: 10/2 Notable Flow
+Input 1: Tracking the $FCEL options flow lately?
 
-$AAPL 350 C 11/06/2026 $1.2M 4.37avg
-$AMPL 15 C 10/16/2026 $427K .52avg
-$AVGO 355 C 11/06/2026 $4M 16.19avg
-$POET 11 C 04/16/2027 $2.6M 1.11avg 41% OTM
-$XOM 175 C 10/09/2026 $172K .16avg (Buzzer Beater)
+The last 5 sessions have shown elevated options activity, with all sessions observing positive net call premiums.
 
-Input 2: 3 back to back short dated flows on different oil names came in during power hour earlier today
+Some of the recent flows responsible for these premiums include:
+20c 2027 ($1.2M in premiums)
+19c 6/26 (nearly $6M in premiums)
 
-$CVX 220 C 10/09/2026 $202K
-$OXY 62 C 10/09/2026 $163K
-$XOM 175 C 10/09/2026 $172K -- This one came in 1 minute before the market closed
+BONUS!
+$FCEL 13c 7/17 (opened mid April)
 
-Might be nothing, might be something. Worth keeping an eye out and let's see if there happens to be any war related news that comes out Sunday at 6pm est for the globex open on futures
+All spotted with Unusual Whales options flow filtering
 
-Input 3: How did they know? $WOLF
+Input 2: Should I do this?
 
-$WOLF - $993K Call buyer
+These $AVGO $450 calls almost in the money now.
 
-Input 4: ADDING HEAVY
+It’s a real possibly that institutions saw this post of mine - saw I told everyone institutions were long, executed a violent shakeout to shake us out, only to pump it up huge now
 
-🚨 $AVNT 45 CALL 10/16 @ .15
+Wild how much they manipulate the market.
 
-Input 5: ADDING HEAVY
+Input 3: These $AVGO $450 calls almost in the money now.
 
-🚨 $AVNT 45 CALL 10/16 @ .20
+It’s a real possibly that institutions saw this post of mine - saw I told everyone institutions were long, executed a violent shakeout to shake us out, only to pump it up huge now
 
-Input 6: 🚨 $SPCX 165 CALL 10/9 @ 1.55
+Wild how much they manipulate the market.
 
-Input 7: 🚨 $MCY 110 CALL 10/16 @ .35
+$AVGO just dipped to the daily 5sma at $425 and bounced, @blademapai then showed us institutions decided to buy 5/18 $450 calls right after the bounce, what this means:
 
-Input 8: 🚨 $MCY 110 CALL 10/16 @ .40
+That combo usually reads like trend continuation with a planned “reload”, not random dip buying.
 
-Input 9: Technology remains strong. Recent large flows in the SPDR $XLK technology ETF have preceded this recent move
+Here’s what each piece is signaling:
 
-Nearly $2M of the 195c 10/16 opened in the last couple of weeks
+1) Tight above the daily 5 = strength + absorption
 
-The 200c saw similar flows, these totaling $1.3M
+When a stock compresses above the daily 5, it often means:
 
-Traders may be speculating on further upside going into the middle of the month, as the 205c had a trader (albeit much smaller) active recently as well
+Buyers are absorbing supply
+Sellers can’t push it back below trend support
+Price is “coiling” for the next expansion leg
 
-Input 10: Someone's buying $1M worth of $AAPL 350 calls for 11/6exp
+2) Brief dip to daily 5 + bounce = defended level
 
-Input 11: 🚨 $DAC 170 CALL 10/16 @ .80
+That dip is basically the market asking: “is this support real?”
+The bounce says: yes — demand showed up where it should.
 
-this can go 100% fast
+3) Institutions then buy calls OTM = they’re aiming for expansion, not just a bounce
 
-Input 12: 🚨 $LRN 85 CALL 10/16 @ .50
+OTM calls are a “targeting” strike:
 
-Input 13: They were ready for this $SPCX move
+They’re positioning for a bigger move, not a 0.5% scalp
+They’re often expressing confidence that price can travel to a higher zone (breakout / squeeze / continuation leg)
 
-10000 of the 10/16 162.5c opened Tuesday
+What it often means overall
 
-Input 14: $APEI UP +140% 🔥
+“Trend is intact, support is holding, and smart money is positioning for the next leg higher
 
-🚨 $APEI 45 CALL 10/16 @ .45
+Input 4: Large premiums of $3M on this $LUNR 40 call strike 7/17exp contract
 
-Input 15: $DAC UP +70% 🔥🤑
+Input 5: Someone bought $GOOGL 500 C 09/18/2026 for $4.2M
 
-🚨 $DAC 165 CALL 10/16 @ 1.00
+This is a 24% OTM contract
 
-Input 16: Noteworthy flow from yesterday
+Input 6: LARGE premiums here on $CRBG 29C 10/16exp for $7.1M
+
+This is pretty insanely large
+
+Input 7: $PANW JUST CHANGED MY LIFE...
+
+ADDING HEAVY
+
+🚨 $PANW 230 CALL 5/15 @ 1.35
+
+Input 8: $MU chopping exactly as expected, reading the market like a book 📖 with @blademapai
+
+We may need one more day of consolidation but I added $MUU shares and 5/22 calls
+
+Input 9: $RDW up 11% on the day and a whale still thinks it's a good idea to grab a leap on it
+
+Someone just bought $1.7M worth of the 14 C strike for 1/2027
+
+Input 10: Post earnings play here on $POET 25C 7/17exp for $1.4M
+
+Input 11: $RR
+
+Catching flow yesterday on the 9/18 4c
+
+Nice move off the daily demand zone if it flips the 200ema it's probably off to the races
+
+Input 12: $AEVA
+
+Small flow yesterday on the 10/16 30c
+
+That strike is targeting a breakout from this huge range. It's up premarket so would be chasing some to buy today but this could make a helluva move on a breakout after basing this long
+
+Input 13: $FIVN
+
+Big flow yesterday on the 10/16 22.5C for over 9MIL
+
+Nice place to see that flow come in retesting the 200ema
+
+I think you could take those calls with the yearly open as your invalidation. I may see if I can grab some today
+
+Input 14: $FIVN
+
+Big flow yesterday on the 10/16 22.5C
+
+Nice place to see that flow come in retesting the 200ema
+
+I think you could take those calls with the yearly open as your invalidation. I may see if I can grab some today
+
+Input 15: Noteworthy flow from yesterday
 (OI Confirmed)
 
-$MSTR 172.5 Call (10/23) - $3.9M @ 5.27
-$BIRK 35 Call (11/20) - $1.4M @ 1.70
-$WULF 15 Call (11/20) - $2.5M @ 1.75
-$CCL 25 Call (12/18) - $1.4M @ 1.75
-$STLA 5 Call (12/18) - $756K @ 0.36
-$LITE 1150 Call (1/15/27) - $30M @ 139.92
-$RBLX 55 Call (1/15/27) - $1.2M @ 2.70
+$FCEL 20 Call (5/22) - $1M @ 2.05
+$AAPL 302.5 Call (5/29) - $2.5M @ 5.13
+$RR 4 Call (9/18) - $640K @ 0.42
+$FRMI 15 Call (11/20) - $3.1M @ 0.92
+$TTD 25 Call (12/18) - $1M @ 3.06
+$NOK 27 Call (1/15/27) - $3.4M @ 1.29
+$MBLY 15 Call (1/15/27) - $1.7M @ 1.15
+
+Input 16: $POET still going
+
+$POET - $1.6M Call buyer
 
 Input 17: Open Interest Update
 (Check original tweet for contract info)
 
-$BIRK 7,736/8,595 ✅
-$CCL 6,618/8,512 ✅
-$FRMI 30,385/39,721 ✅
-$IOT 2,938/3,702 ✅
-$LITE 1,955/2,146 ✅
-$MSTR 5,676/7,426 ✅
-$WULF 7,052/14,352 ❌
+$F 38,086/50,955 ✅
+$FCEL 4,437/9,093 ❌
+$FIVN 20,547/27,342 ✅
+$FRMI 27,404/34,185 ✅
+$LYV 2,657/2,773 ✅
+$MBLY 9,874/13,256 ✅
+$NOK 9,874/13,256 ✅
+$NXE 30,560/35,202 ✅
+$SONY 2,532/2,797 ✅
 
 The check mark indicates that the whale held more than half of their position.
 
-10/1 Notable Flow
+5/13 Notable Flow
 
-$BIRK 35 C 11/20/2026 $1.4M 1.70avg
-$CCL 25 C 12/18/2026 $1.4M 1.75avg
-$FRMI 7.5 C 01/15/2027 $1.1M .30avg 85% OTM
-$IOT 42 C 12/18/2026 $1.1M 3.02avg
-$LITE 1150 C 01/15/2027 $30M 139.92avg 10% OTM
-$MSTR 172.5 C 10/23/2026 $3.9M 5.27avg
-$WULF 15 C 11/20/2026 $2.5M 1.75avg
+$F 15 C 06/18/2026 $1M .21avg 11% OTM
+$FCEL 32 C 06/18/2026 $1.8M 2.01avg
+$FIVN 22.5 C 10/16/2026 $9.6M 3.52avg
+$FRMI 15 C 11/20/2026 $3.1M .92avg 150% OTM (ER Tm)
+$LYV 185 C 01/15/2027 $4M 14.72avg 10% OTM
+$MBLY 15 C 01/15/2027 $1.7M 1.15avg 42% OTM
+$NOK 18 C 07/17/2026 $1.2M .93avg 22% OTM
+$NXE 13 C 06/18/2026 $2.4M .69avg
+$SONY 27.5 C 10/16/2026 $295K 1.06avg 21% OTM
 
-Input 18: 10/1 Notable Flow
+Input 18: $NFLX
 
-$BIRK 35 C 11/20/2026 $1.4M 1.70avg
-$CCL 25 C 12/18/2026 $1.4M 1.75avg
-$FRMI 7.5 C 01/15/2027 $1.1M .30avg 85% OTM
-$IOT 42 C 12/18/2026 $1.1M 3.02avg
-$LITE 1150 C 01/15/2027 $30M 139.92avg 10% OTM
-$MSTR 172.5 C 10/23/2026 $3.9M 5.27avg
-$WULF 15 C 11/20/2026 $2.5M 1.75avg
+I haven’t seen the ask skipped so hard in a while on those 5/15 calls this afternoon.
 
-Input 19: $STLA - $675K Call buyer
+Should be an interesting day tomorrow.
 
-Input 20: 🚨 $CAC 60 CALL 10/16 @ .20
+Input 19: I just posted a VERY in depth breakdown of this notable flow list to my X subscribers
 
-Input 21: 🚨 $SKWD 60 CALL 10/16 @ .20
+I do this every night and highly recommend you guys check it out to see my thought process on each one and why it made the list to begin with
 
-this can double fast
+5/13 Notable Flow
 
-@everyone
+$F 15 C 06/18/2026 $1M .21avg 11% OTM
+$FCEL 32 C 06/18/2026 $1.8M 2.01avg
+$FIVN 22.5 C 10/16/2026 $9.6M 3.52avg
+$FRMI 15 C 11/20/2026 $3.1M .92avg 150% OTM (ER Tm)
+$LYV 185 C 01/15/2027 $4M 14.72avg 10% OTM
+$MBLY 15 C 01/15/2027 $1.7M 1.15avg 42% OTM
+$NOK 18 C 07/17/2026 $1.2M .93avg 22% OTM
+$NXE 13 C 06/18/2026 $2.4M .69avg
+$SONY 27.5 C 10/16/2026 $295K 1.06avg 21% OTM
 
-Input 22: $APEI UP +90% 🔥
+Input 20: 5/13 Notable Flow
 
-🚨 $APEI 45 CALL 10/16 @ .45
+$F 15 C 06/18/2026 $1M .21avg 11% OTM
+$FCEL 32 C 06/18/2026 $1.8M 2.01avg
+$FIVN 22.5 C 10/16/2026 $9.6M 3.52avg
+$FRMI 15 C 11/20/2026 $3.1M .92avg 150% OTM (ER Tm)
+$LYV 185 C 01/15/2027 $4M 14.72avg 10% OTM
+$MBLY 15 C 01/15/2027 $1.7M 1.15avg 42% OTM
+$NOK 18 C 07/17/2026 $1.2M .93avg 22% OTM
+$NXE 13 C 06/18/2026 $2.4M .69avg
+$SONY 27.5 C 10/16/2026 $295K 1.06avg 21% OTM
 
-Input 23: 🚨 $UVE 45 CALL 10/16 @ .40
+Input 21: Crazy flow on $FCEL the past month, and for a reason.
 
-Input 24: 🚨 $UVE 45 CALL 10/16 @ .35
+$FCEL - $910K Call buyer
 
-$apei type play🔥
+Input 22: OMG IM SHAKING ALREADY
 
-Input 25: $DKNG RUNNERS +260% 🔥☢️
+ADDING HEAVY
 
-🚨 $DKNG 20 PUT 10/02 @ .36
+🚨 $PANW 230 CALL 5/15 @ 1.35
 
-52 week breakdown + $FLUT sympathy 🩸
+Input 23: $1 million into these $FRMI calls now
 
-Input 26: 🚨 $SPNT 25 CALL 10/16 @ .55
+$FRMI - $146K Call buyer. 169% OTM
 
-Input 27: $BIRK - $981K Call buyer
+Input 24: We may need one more day of consolidation but I added $MUU shares and 5/22 calls
 
-Input 28: 🚨 $DAC 165 CALL 10/16 @ 1.00
+Institutions buying $MU calls again now
 
-Input 29: $APEI UP 50% 🔥
+Input 25: ADDING HEAVY
 
-🚨 $APEI 45 CALL 10/16 @ .45
+🚨 $PANW 230 CALL 5/15 @ 1.35
 
-Input 30: $IDT UP +400% ☢️🔥
+Input 26: $1.1M on $XLE 60C 11/20exp
 
-🚨 $IDT 80 CALL 10/16 @ .60
+Keep your eyes on Oil
 
-this can double fast
+Input 27: $FRMI - $146K Call buyer. 169% OTM
 
-Input 31: Noteworthy flow from yesterday
+Input 28: Big leap here on a $MBLY 43% OTM contract despite it being up 14% on the day
+
+$MBLY 15 C 01/15/2027 for $1.2M
+
+Input 29: $NOK new highs up 9% today
+
+The December calls I bought simply so I wouldn’t cope and seethe are up 70% lol
+
+Also bought some 2027 calls yesterday on the dip that are up 25%
+
+Leopold position disclosed Friday?
+👉👈
+
+There was some big flow on far OTM $NOK calls last week
+
+12/18 23c
+
+According to my advanced calculations I should buy this just so that if it rips face I don't cope and seethe. This has literally become my thesis.
+
+Nibbled small on those calls
+
+Input 30: $SPY | BOTTOM MF SNIPER
+
+$SPY 741C @.23
+
+Input 31: $NOK new highs up 9% today
+
+The December calls I bought simply so I wouldn’t cope and seethe are up 70% lol
+
+Also bought some 2027 calls yesterday on the dip that are up 25%
+
+Leopard position disclosed Friday?
+👉👈
+
+There was some big flow on far OTM $NOK calls last week
+
+12/18 23c
+
+According to my advanced calculations I should buy this just so that if it rips face I don't cope and seethe. This has literally become my thesis.
+
+Nibbled small on those calls
+
+Input 32: $CELH put buyers for $1.2M on the 25P strike for 10/16exp
+
+Underlying is already down -5.5% on the day
+
+Input 33: This name's been so beat up for the past two years
+
+Someone's buying $984K worth of $TTD 25C 112/18exp
+
+Input 34: $TSLA
+
+TP was the yearly open we got close
+
+But 4hr supply zone here and an intraday SFP so I sold my OCT calls and trimmed my 2027s down to a runner for ATHs
+
+60% with size on the 2027s plus an assortment of shorter term gains along the way is pretty good I'll take it 🤝
+
+$TSLA
+
+Big buying on the 3/19/27 560c yesterday
+
+Showing relative strength even with spooz weak.
+
+Flipping the 200sma and the yearly avwap
+
+Still in a few short term runners but I tailed that dated flow with decent size. I think we can run this up to the yearly open at least
+
+Input 35: Pretty sus sizing on $NXE bullish flow here
+
+$1.4M on the line with 22.5K cons traded on the 13 call strike for 6/18exp
+
+Input 36: $SPY | BAGGER ; CALL ME OHTANI🏌🏽‍♂️
+
+$SPY 741C @.23
+
+Input 37: $MP - $502K Weekly call buyer
+
+Input 38: $NOK ripping. I can’t believe no one else on fintwit is on this name
+
+$NOK - $600K Call buyer
+
+Input 39: LARGE premiums on this $FIVN 22.5 call strike for 10/16
+
+There's $5M on the line, this contract alone makes up for nearly 85% of the entire day's premium on the underlying
+
+Input 40: Hellllooo $NOK bulls
+
+$602K on the 17 call strike for 10/16exp just came in
+
+Input 41: $HPE - $169K Weekly call buyer
+
+Input 42: $XLF
+
+Small flow just now on the 6/5 52c
+
+Falling edge into the daily cloud and the previous double bottom level
+
+Took a small position in those calls to add to my $C and $ALLY positions
+
+No more financials now, why do I punish myself 😂
+
+Input 43: $VNET gone
+
+$VNET - $272K Call buyer
+
+Input 44: $WOLF +35% loool
+
+Sold half my calls, free trade can run to Valhalla now
+
+$WOLF
+
+Repeat buying Friday on the 1/15/27 65c for over 3MIL in premium
+
+Stock is now in price discovery and this could be an under owned semi that plays catch-up. Also earnings risk is out of the way.
+
+I bought a starter position in these calls Friday, looking to add on any major dips
+
+Input 45: Noteworthy flow from yesterday
 (OI Confirmed)
 
-$XLU 41 Call (10/30) - $2.2M @ 0.40
-$AMZN 270 Call (11/6) - $1.2M @ 6.00
-$TSM 460 Call (11/6) - $25.7M @ 20.60
-$TLT 83 Call (11/30) - $3.5M @ 0.37
-$GOOG 375 Call (12/18) - $4.6M @ 12.87
+$SPY 745 Call (5/18) - $2.1M @ 1.11
+$SLV 79 Call (5/22) - $1.8M @ 3.00
+$AA 70 Call (6/18) - $2.8M @ 3.28
+$FCEL 19 Call (6/26) - $5.9M @ 2.56
+$MU 1020 Call (9/18) - $6.4M @ 89.45
+$NPWR 5 Call (1/15/27) - $682K @ 0.38
+$SSRM 40 Call (1/15/27) - $482K @ 6.00
 
-Input 32: Open Interest Update
+Input 46: In the money already $WOLF
+
+$WOLF - $2.9M Call buyer
+
+Input 47: Open Interest Update
 (Check original tweet for contract info)
 
-$BA 5,055/5,786 ✅
-$BE 4,164/4,208 ✅
-$GILD 4,416/4,632 ✅
-$GOOG 2,244/3,593 ✅
-$RIOT 12,956/15,226 ✅
-$XLU 53,152/56,002 ✅
+$FCEL 19,839/23,223✅
+$LYFT 26,418/27,620 ✅
+$NPWR 15,561/17,972 ✅
+$TSLA 1,872/2,078 ✅
+$VNET 6,945/8,285 ✅
+$WULF 7,466/9,016✅
 
 The check mark indicates that the whale held more than half of their position.
 
-9/30 Notable Flow
+5/12 Notable Flow
 
-$BA 210 C 11/20/2026 $1.7M 3.08avg 13% OTM
-$BE 260 P 01/15/2027 $13.8M 32.87avg
-GILD 140 P 11/20/2026 $1.5M 3.27avg
-$GOOG 375 C 12/18/2026 $4.6M 12.87avg 10% OTM
-$RIOT 22 C 10/30/2026 $2M 1.37avg
-$XLU 41 C 10/30/2026 $2.3M .41avg
+$FCEL 19 C 06/26/2026 $5.9M 2.56avg 11% OTM
+$LYFT 16 C 06/18/2026 $806K .29avg 15% OTM
+$NPWR 5 C 01/15/2027 $857K .38avg 102% OTM
+$TSLA 680 C 10/16/2026 $2.4M 11.86avg 57% OTM
+$VNET 11 C 06/18/2026 $447K .54avg 22% OTM
+$WULF 18 P 08/21/2026 $1.8M 2.05avg 21% OTM
 
-Input 33: 9/30 Notable Flow
+Input 48: 5/12 Notable Flow
 
-$BA 210 C 11/20/2026 $1.7M 3.08avg 13% OTM
-$BE 260 P 01/15/2027 $13.8M 32.87avg
-GILD 140 P 11/20/2026 $1.5M 3.27avg
-$GOOG 375 C 12/18/2026 $4.6M 12.87avg 10% OTM
-$RIOT 22 C 10/30/2026 $2M 1.37avg
-$XLU 41 C 10/30/2026 $2.3M .41avg
+$FCEL 19 C 06/26/2026 $5.9M 2.56avg 11% OTM
+$LYFT 16 C 06/18/2026 $806K .29avg 15% OTM
+$NPWR 5 C 01/15/2027 $857K .38avg 102% OTM
+$TSLA 680 C 10/16/2026 $2.4M 11.86avg 57% OTM
+$VNET 11 C 06/18/2026 $447K .54avg 22% OTM
+$WULF 18 P 08/21/2026 $1.8M 2.05avg 21% OTM
 
-Input 34: $1200 calls on $MU are $7
+Input 49: $WOLF chadding after hours
 
-Spensive...
+Added one more call to my position today on le dip
 
-Input 35: $HHH UP +500% 🔥☢️
+$WOLF
 
-🚨 $HHH 65 CALL 10/16 @ 2.00
+Repeat buying Friday on the 1/15/27 65c for over 3MIL in premium
 
-Input 36: $IDT UP +300% ☢️
+Stock is now in price discovery and this could be an under owned semi that plays catch-up. Also earnings risk is out of the way.
 
-🚨 $IDT 80 CALL 10/16 @ .60
+I bought a starter position in these calls Friday, looking to add on any major dips
 
-this can double fast
+Input 50: Added some $TSLA October 500c on the dip today to go with my 2027 calls
 
-Input 37: $DKNG UP +200% 🔥
+Still think yearly open is programmed
 
-🚨 $DKNG 20 PUT 10/02 @ .36
+$TSLA
 
-52 week breakdown + $FLUT sympathy 🩸
+Big buying on the 3/19/27 560c yesterday
 
-Input 38: 🚨 $CPK 135 CALL 10/16 @ HERE
+Showing relative strength even with spooz weak.
 
-below my fill
+Flipping the 200sma and the yearly avwap
 
-Input 39: 🚨 $CPK 135 CALL 10/16 @ HERE 🔥
+Still in a few short term runners but I tailed that dated flow with decent size. I think we can run this up to the yearly open at least
 
-Input 40: ADDING HEAVY UNDER PRICED CONTRACTS
+Input 51: Insanely bullish
 
-🚨 $CPK 135 CALL 10/16 @ HERE
+This is absolutely insane
 
-Input 41: ADDING SUPER HEAVY UNDER PRICED CONTRACTS
+There's >$100 MILLION worth of net $MU put sellers in just the last hour alone
 
-🚨 $CPK 135 CALL 10/16 @ 1.00
+This is an incredible amount of premium
 
-Input 42: ADDING HEAVY UNDER PRICED CONTRACTS
+Input 52: $2.6 million into these $FCEL calls now
 
-🚨 $JAZZ 250 CALL 10/16 @ ..85
+$FCEL - $1.3M into these calls
 
-Input 43: 🚨 $APEI 45 CALL 10/16 @ .45
+Input 53: $FCEL - $1.3M into these calls
 
-Input 44: You are not bullish enough 🤯 $INTC $230 calls
+Input 54: $NPWR - $350K Call buyer. 130% OTM
 
-Input 45: Someone is buying $GOOG 375 C 12/18/2026 for $4.5M
+Input 55: Back in $SCCO same strike lower price off the EMAs tap
 
-Input 46: $AFRM - $511K Call buyer
+$SCCO has that look like it wants to send
 
-Input 47: $IDT UP 150% 🔥🏦
+@steve2bacon's favorite pattern lol
 
-🚨 $IDT 80 CALL 10/16 @ .60
+There was repeat buying on the 6/18 200c which I overlooked. Chasing some of that flow today expecting a breakout
 
-this can double fast
+Input 56: We saw some $TSLA bulls come in on the 680 call strike for 10/16exp right out the gate this morning for $2.1M
 
-Input 48: ADDING HEAVY
+They're currently in about $200/con drawdown
 
-🚨 $NTCT 45 CALL 10/16 @ .25
-
-Input 49: Another bull $PACB. Also 8% higher since last post
-
-$PACB - $95K Call buyer
-
-Input 50: ADDING HEAVY
-
-🚨 $SEIC 110 CALL 10/16 @ .50
-
-Input 51: 🚨 $SEIC 110 CALL 10/16 @ .55
-
-Input 52: Large $RIOT call buyers coming in here even though RIOT is down -3% on the day
-
-$RIOT 22 C 10/30/2026 for $1.3M
-
-Input 53: $PACB - $95K Call buyer
-
-Input 54: $PATH - $494K Call buyer
-
-Input 55: $AMZN - $845K Call buyer
-
-Input 56: Oh my $MDB 🤯🤯🤯
-
-$MDB - $399K Call buyer
-
-Input 57: $ONDS - $295K Call buyer
-
-Input 58: Noteworthy flow from yesterday
+Input 57: Noteworthy flow from yesterday
 (OI Confirmed)
 
-$SPCX 162.5 Call (10/16) - $2.1M @ 1.72
-$BIRK 35 Call (10/16) - $550K @ 0.59
-$MSTR 165 Call (10/23) - $3.6M @ 6.58
-$FRVO 15 Call (11/20) - $346K @ 1.60
-$INTC 145 Call (2/19/27) - $3M @ 12.07
+$APLD 65 Call (6/18) - $1.3M @ 1.82
+$FCEL 18 Call (6/18) - $373K @ 2.68
+$NOK 16 Call (7/17) - $4.8M @ 0.91
+$SONY 25 Call (7/17) - $3.2M @ .046
+$NVTS 35 Call (9/18) - $513K @ 4.68
+$SPY 825 Call (9/30) - $22M @ 3.95
 
-Input 59: Open Interest Update
+Input 58: Open Interest Update
 (Check original tweet for contract info)
 
-$INTC 2,050/2,550 ✅
-$MSTR 4,103/5,619 ✅
-$SPCX 10,102/12,340 ✅
-$TLT 15,519/16,908 ✅
-$UBER 3,590/4,389 ✅
+$BIDU 5,152/5,260 ✅
+$CIFR 10,265/14,225✅
+$FROG 3,153/3,273 ✅
+$NOK 42,916/53,790✅
+$NVDA 3,609/5,651 ✅
+$SLV 2,967/5,204 ✅
+$SPY 56,395/57,700 ✅
+$TSLA 3,400/4,769✅
 
 The check mark indicates that the whale held more than half of their position.
 
-9/29 Notable Flow
+5/11 Notable Flow -- Not a single notable put position in sight ahead of CPI lol (watch this be the jinx lol)
 
-$INTC 145 C 02/19/2027 $3M 12.07avg 25% OTM
-$MSTR 165 C 10/23/2026 $3.7M 6.58avg
-$SPCX 162.5 C 10/16/2026 $2.1M 1.72avg
-$TLT 78 P 11/06/2026 $2.9M 1.72avg
-$UBER 72.5 C 01/15/2027 $2M 4.57avg
+$BIDU 160 C 08/21/2026 $6.5M 12.53avg (ER in 7D)
+$CIFR 24 C 07/17/2026 $3.6M 2.59avg 18% OTM
+$FROG 70 C 06/18/2026 $1.6M 5.10avg (Buzzer Beater)
+$NOK 16 C 07/17/2026 $4.9M .91avg 15% OTM
+$NVDA 225 C 06/12/2026 $6M 10.73avg (ER in 9D)
+$SLV 87 C 08/21/2026 $3.4M 6.64avg 12% OTM
+$SPY 825 C 09/30/2026 $22.7M 3.95avg 12% OTM
+$TSLA 470 C 06/05/2026 $5.2M 11.07avg
 
-Input 60: Big day in the Nasdaq! $QQQ now up over 2.5% today
+Input 59: These block trades on $META caught my eye.
 
-The QQQ 815c December expiration saw a big 13,000 size trade this morning, closing in on an intraday 75% return now.
+Especially the $600 10/16 C’s.
 
-Live options flow posted in the UW Discord for subscribers to the UW platform:
+Block trades consistently hitting the strike like this usually means buying; not random selling.
 
-$QQQ 815c 12/18/2026 seeing 13000+ opened
+“Bid” here means nothing as these were block trades
 
-Input 61: 9/29 Notable Flow
+The earlier sweeps are a bit more telling.
 
-$INTC 145 C 02/19/2027 $3M 12.07avg 25% OTM
-$MSTR 165 C 10/23/2026 $3.7M 6.58avg
-$SPCX 162.5 C 10/16/2026 $2.1M 1.72avg
-$TLT 78 P 11/06/2026 $2.9M 1.72avg
-$UBER 72.5 C 01/15/2027 $2M 4.57avg
+Input 60: 5/11 Notable Flow -- Not a single notable put position in sight ahead of CPI lol (watch this be the jinx lol)
 
-Input 62: $FRVO - $312K Call buyer
+$BIDU 160 C 08/21/2026 $6.5M 12.53avg (ER in 7D)
+$CIFR 24 C 07/17/2026 $3.6M 2.59avg 18% OTM
+$FROG 70 C 06/18/2026 $1.6M 5.10avg (Buzzer Beater)
+$NOK 16 C 07/17/2026 $4.9M .91avg 15% OTM
+$NVDA 225 C 06/12/2026 $6M 10.73avg (ER in 9D)
+$SLV 87 C 08/21/2026 $3.4M 6.64avg 12% OTM
+$SPY 825 C 09/30/2026 $22.7M 3.95avg 12% OTM
+$TSLA 470 C 06/05/2026 $5.2M 11.07avg
 
-Input 63: $WOLF - $993K Call buyer
+Input 61: $REAL
 
-Input 64: $DKNG UP +100% 🤑🔥
+Interesting post earnings flow coming in on this retail name... 6/18 10c
 
-🚨 $DKNG 20 PUT 10/02 @ .36
+Not a bad place to see that flow come in. Potential for a higher low here at the quarterly open and volume self. Also trying to hold onto the golden pocket fib retracement. High volume.
 
-52 week breakdown + $FLUT sympathy 🩸
+On watch
 
-Input 65: OMG IM SHAKING
+Input 62: What a comeback for $POET
 
-🚨 $DKNG 20 PUT 10/02 @ .36
+$POET - $1.6M Call buyer
 
-52 week breakdown + $FLUT sympathy 🩸
+Input 63: Over 400% gain for this $NVTS bull from Friday
 
-Input 66: $MDB - $399K Call buyer
+$NVTS - $666K Call buyer
 
-Input 67: $BIRK - $245K Call buyer
+Input 64: Large $TSLA call flows seen this morning, notably the 420c 5/20 and the 465c 6/5...
 
-Input 68: 🚨 $DKNG 20 PUT 10/02 @ .36
+Shortly after these flows news broke that Musk would be joining Trump and other CEOs on his trip to China
 
-52 week breakdown + $FLUT sympathy 🩸
+Follow the flows with Unusual Whales:
 
-Input 69: 🚨 $UTL 55 CALL 10/16 @ .20
+Input 65: Looks like $SONY call buyer is all out in profit on their position
 
-UNDERVALUED CONTRACTS
+This $SONY flow just went +52% since I posted it :)
 
-Input 70: 🚨 $UTL 55 CALL 10/16 @ .30
+Input 66: This $SONY flow just went +52% since I posted it :)
 
-UNDERVALUED CONTRACTS 🚨
+$1M on this $SONY 25 call strike for 7/17exp
 
-Input 71: 🚨 $UTL 55 CALL 10/16 @ .30
+The only thing is they report earnings in 2 days and the underlying is up 5.6% on the day
 
-UNDERVALUED CONTRACTS
+This contract alone makes up for a little under half of the total premium traded on $SONY today
 
-Input 72: 🚨 $FLUT 70 PUT 10/16 @ .1.45
+Input 67: Big China play here on $BIDU for $6.3M on the 160 call strike for 8/21
 
-suspicious downside flow
+They report earnings next week so this is definitely a pre earnings run up play
 
-Input 73: Institutions buying $1300 calls on $MU data via @blademapai
+Input 68: $AMN +400% ☢️
 
-Input 74: 🚨 $IDT 80 CALL 10/16 @ .60
+🚨 $AMN 30 CALL 5/15 @ .30
 
-this can double fast
+Input 69: I want to give you the bigger picture on $NOK
 
-Input 75: ADDING HEAVY
+They are shifting with the times at a great point, imo this runs to previous highs and then ATHs.
 
-🚨 $PCB 30 CALL 10/16 @ .40
+Its been under the radar for most people until now. Call buyers however have been buying leaps for the past 2 months . Deep OTMs.
 
-Input 76: ADDING HEAVY
+$nok 1 month.
 
-🚨 $PCB 30 CALL 10/16 @ .55
+It has room to go still and if its flips it should be pretty nice.
 
-Input 77: 9/18 Notable Flow
+Input 70: $TSLA 2027 calls up 50% … about $1750 a con
 
-$AAPL 335 C 09/17/2027 $9.3M 43.09avg
-$AMZN 305 C 12/17/2027 $4M 27.82avg 20% OTM
-$CVX 230 C 09/25/2026 $139K .11avg 10% OTM (Buzzer Beater)
-$ERAS 17.5 C 11/20/2026 $2.8M 2.02avg 18% OTM
-$GOOG 390 C 10/16/2026 $1.4M 1.66avg 13% OTM
-$RARE 15 C 01/15/2027 $3M 2.53avg
-$SPY 745 P 10/30/2026 $17M 7.87avg
-$XBI 160 C 01/15/2027 $2.2M 10.34avg
+And it was a comfy add I could grab with size
 
-Input 78: $SN SharkNinja calls seeing over a 3x return - big flows spotted Friday afternoon into the 165c 9/18
+Trimming most all of my shorter exp strikes here except for a runner and just holding the 2027s
 
-Access to big options trades + much more with Unusual Whales options flow data:
+Giddyup
 
-Input 79: Just today in under 5 hours I gave YOU ALL over 300% in gains…
+$TSLA
 
-I GAVE YOU $IMOS 60 CALL FOR 200%🥰
+Big buying on the 3/19/27 560c yesterday
 
-I GAVE YOU $BMI 135 CALL FOR 100%🥰
+Showing relative strength even with spooz weak.
 
-I’m up at 4am everyday prepping for each trading day, and posting my thoughts on X for you guys for completely free
+Flipping the 200sma and the yearly avwap
 
-all my trades are timestamped here on X for everyone to see live
+Still in a few short term runners but I tailed that dated flow with decent size. I think we can run this up to the yearly open at least
 
-like this post to jump onboard
+Input 71: Someone's buying $4.2M in $TSLA 470 calls
 
-Input 80: OMG IM SHAKING
+They just came in despite $TSLA already being up 3% on the day
 
-🚨 $IMOS 60 CALL 9/18 @ .60
+Input 72: $MU 900C & 1000C WEEKLIES ⚡⚡
 
-THIS CAN DOUBLE FAST
+Input 73: $1M on this $SONY 25 call strike for 7/17exp
 
-Input 81: $IMOS @.70 here 🔥
+The only thing is they report earnings in 2 days and the underlying is up 5.6% on the day
 
-🚨 $IMOS 60 CALL 9/18 @ .60
+This contract alone makes up for a little under half of the total premium traded on $SONY today
 
-THIS CAN DOUBLE FAST
+Input 74: $KEEL - $50K Call buyer. 87% OTM
 
-Input 82: $CRWD - $854K Call buyer. Next week expiration
+Input 75: Not all “flow” is notable flow
 
-Input 83: 🚨 $IMOS 60 CALL 9/18 @ .60
+Remember this.
 
-THIS CAN DOUBLE FAST
+Just because you see some crazy order being posted about, it doesn’t mean it’s a reliable order. Crazy orders pop up on my filters literally 24/7
 
-Input 84: $NEE - $491K Put buyer
+There is a lot to options than just posting random call buyers which seem like large buyers
 
-Input 85: $BMI +100% 🔥🏦
+I keep my flow posts very selective for a reason
 
-🚨 $BMI 135 CALL 9/18 @ .65
+$2M turned into $105M in less than 10 days
 
-THIS CAN DOUBLE FAST
+The exact option play I shared for free netted a 5,000% gain on Micron $MU
 
-Input 86: OMG IT DOUBLED FAST
+I don’t even post specific contracts in bunches on here. I only ever share stuff I deem to be notable so anyone can tag along
 
-🚨 $BMI 135 CALL 9/18 @ .65
+Input 76: $MU 800C SWEEPER ALERT 🧹
 
-THIS CAN DOUBLE FAST
+Input 77: $TSLA yearly open a magnet 🧲
 
-Input 87: 🚨 $BMI 135 CALL 9/18 @ .65
+$TSLA
 
-THIS CAN DOUBLE FAST
+Big buying on the 3/19/27 560c yesterday
 
-Input 88: Massive sized $AAPL leap coming in for $8.6M on the 335 call strike for 9/17/2027
+Showing relative strength even with spooz weak.
 
-Input 89: Someone's buying $AMZN 305 C 12/17/2027 for $3.8M
+Flipping the 200sma and the yearly avwap
 
-This is a 21% OTM contract with a year+ out til expiry
+Still in a few short term runners but I tailed that dated flow with decent size. I think we can run this up to the yearly open at least
 
-Input 90: $INTC - $5M Put seller (bullish)
+Input 78: The bullish activity on $NOK is not slowing down
 
-Input 91: $GOOG - $13.3M Put seller (Bullish)
+Someone just bought $1.5M worth of $NOK 16 calls for 7/17exp
 
-Input 92: Open Interest Update
-(Check original tweet for contract info)
+This is a 20% OTM contract
 
-$DHR 6,340/6,767 ✅
-$HOOD 2,458/2,465 ✅
-$MU 8,335/12,347 ✅
-$QUBT 8,782/9,877 ✅
-$SMH 2,136/2,260 ✅
-$TSLA 863/2,674 ❌
+Input 79: Large $NVDA call buyer here for $5.1M on the 225 call strike for 6/12exp
 
-The check mark indicates that the whale held more than half of their position.
+They report earnings in 9 days
 
-9/17 Notable Flow
+Input 80: Calls immediately up 20% lmao
 
-$DHR 250 C 01/15/2027 $2.9M 4.35avg 18% OTM
-$HOOD 145 C 09/17/2027 $4.6M 18.92avg 32% OTM
-$MU 1000 C 10/02/2026 $53.9M 43.69avg
-$QUBT 13 C 10/30/2026 $179K .18avg 54% OTM
-$SMH 572.5 C 09/29/2026 $1.6M 7.33avg
-$TSLA 370 C 10/09/2026 $3.8M 14.22avg
+The not wanting to cope and seethe thesis is working
 
-Input 93: 9/17 Notable Flow
+There was some big flow on far OTM $NOK calls last week
 
-$DHR 250 C 01/15/2027 $2.9M 4.35avg 18% OTM
-$HOOD 145 C 09/17/2027 $4.6M 18.92avg 32% OTM
-$MU 1000 C 10/02/2026 $53.9M 43.69avg
-$QUBT 13 C 10/30/2026 $179K .18avg 54% OTM
-$SMH 572.5 C 09/29/2026 $1.6M 7.33avg
-$TSLA 370 C 10/09/2026 $3.8M 14.22avg
+12/18 23c
 
-Input 94: 🚨 🚨 $FET 85 CALL 9/18 @ .55
+According to my advanced calculations I should buy this just so that if it rips face I don't cope and seethe. This has literally become my thesis.
 
-Input 95: 🚨 $FET 85 CALL 9/18 @ .55
+Nibbled small on those calls
 
-Input 96: Someone's buying a 35% OTM contract on $HOOD 145 call strike expiring 9/17/2027 -- a whole year out with $2.7M on the line!
+Input 81: $1M on the line for this $APLD 65C 6/18exp
+
+This is a 42% OTM contract -- the underlying is up 11% on the day so be careful if you tail
+
+Input 82: $ARBE +9.5% today
+
+Ironically my November calls have not moved at all lmao. Too far OTM. I probably could have just bought shares.
+
+Anyway, this looks poised for a breakout. hoping for a pump into earnings so I can take profit and leave a runner position into ERs
+
+$ARBE
+
+Interesting ticker here... Robotics name
+
+Caught some small flow on the 11/20 1.5C last week
+
+OI is still in
+
+I set an alert on the daily demand zone to buy some. Today it triggered
+
+Small size cuz its a spec name, but worth a lil gambol lol
+
+Input 83: $AVGO - $646K Weekly call buyer
+
+Input 84: There was some big flow on far OTM $NOK calls last week
+
+12/18 23c
+
+According to my advanced calculations I should buy this just so that if it rips face I don't cope and seethe. This has literally become my thesis.
+
+Nibbled small on those calls
+
+Input 85: HUGE $SPY bullish flow here for $22.2M on the 825 call strike for 9/30exp
+
+We've got 56K cons in volume
+
+Input 86: $WOLF +12% lmao
+
+Of course i only bought a starter smh
+
+$WOLF
+
+Repeat buying Friday on the 1/15/27 65c for over 3MIL in premium
+
+Stock is now in price discovery and this could be an under owned semi that plays catch-up. Also earnings risk is out of the way.
+
+I bought a starter position in these calls Friday, looking to add on any major dips
+
+Input 87: Disgusting move $NVTS
+
+$NVTS - $666K Call buyer
+
+Input 88: $SPY SIZE UPSIDE CALL BUYER 🐂
+
+Input 89: $MU 1480C SWEEPER 🤯
+
+Input 90: $SCCO ripping
+
+No trims for me yet as I'm trying to learn not to sell the breakout and regret not holding it when its 10% higher in two weeks lol
+
+Green lines represent some local resistance, may trim a little there, but didn't buy enough so may just hold
+
+Calls current +30%
+
+$SCCO has that look like it wants to send
+
+@steve2bacon's favorite pattern lol
+
+There was repeat buying on the 6/18 200c which I overlooked. Chasing some of that flow today expecting a breakout
+
+Input 91: $AAOI - $610K Call buyer. 44% OTM
+
+Input 92: Noteworthy flow from Friday
+(OI Confirmed)
+
+$NVTS 18 Call (5/15) - $1.5M @ 1.14
+$NOK 13 Call (5/22) - $624K @ 0.62
+$QCOM 230 Call (6/5) - $5.4M @ 17.34
+$TSLA 495 Call (6/18) - $9.3M @ 7.06
+$CSCO 97.5 Call (9/18) - $872K @ 7.75
+$WOLF 65 Call (1/15/27) - $3.3M @ 12.65
 
 Output:

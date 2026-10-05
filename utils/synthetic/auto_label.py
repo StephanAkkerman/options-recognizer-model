@@ -19,7 +19,7 @@ Workflow (manual mode — recommended for the first batch):
 
   Interactive mode (loop through everything without juggling files):
     `python -m utils.synthetic.auto_label --interactive [--batch-size 10]`
-    `python -m utils.synthetic.auto_label --interactive --batch-chars 10000`
+    `python -m utils.synthetic.auto_label --interactive --batch-chars 20000`
     Each round writes the prompt to --prompt-file (default
     data/auto_label/prompt.txt); copy it into your LLM, paste the JSON reply
     back in the terminal, then type END on its own line (or `q` to quit).
@@ -385,11 +385,16 @@ def load_unlabeled_posts(jsonl_path, dedup_text_folders=None):
     )
 
     posts = []
-    for row in read_jsonl(jsonl_path):
+    for row_index, row in enumerate(read_jsonl(jsonl_path)):
         text = (row.get("text") or "").strip()
         if not text or _text_hash(text) in known:
             continue
-        posts.append({"tweet_id": str(row.get("id")), "text": text})
+        # row_index is the position in the full cleaned file: unlike a position
+        # in this (deduped) list it never shifts between runs, so it makes a
+        # stable task id.
+        posts.append(
+            {"tweet_id": str(row.get("id")), "text": text, "row_index": row_index}
+        )
     return posts
 
 
@@ -464,8 +469,8 @@ def parse_batch_response(
     """Convert a batch `{"results": [...]}` response into Label Studio tasks.
 
     `texts` is the list of input strings (1-indexed by the LLM's "index" field).
-    `post_indices` is the corresponding list of original post indices, used
-    to assign stable task IDs (so re-running with the same posts overwrites
+    `post_indices` is the corresponding list of stable row indices in the cleaned
+    file, used to assign task IDs (so re-running with the same posts overwrites
     rather than duplicates).
     Returns (list_of_tasks, list_of_(input_idx, dropped_entries)).
     """
@@ -615,7 +620,7 @@ def run_interactive(posts, args, line_source=None):
             texts,
             response_obj,
             args.task_id_offset,
-            post_indices,
+            [posts[i]["row_index"] for i in post_indices],
             [posts[i]["tweet_id"] for i in post_indices],
         )
         save_tasks(tasks, args.output)
@@ -735,7 +740,7 @@ def main():
             texts,
             response_obj,
             args.task_id_offset,
-            post_indices,
+            [t["row_index"] for t in targets],
             [t["tweet_id"] for t in targets],
         )
         save_tasks(tasks, args.output)
