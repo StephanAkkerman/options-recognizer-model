@@ -1,10 +1,15 @@
 import json
+from argparse import Namespace
 
 from utils.synthetic.auto_label import (
     FEW_SHOT_EXAMPLES,
     LABELS,
     build_prompt,
+    extract_entities,
     parse_response_to_task,
+    reprocess_raw,
+    save_raw,
+    _save_response,
 )
 from utils.labeling.clean_data import clean_records, clean_text, template_key
 from utils.hf.hf_utils import build_dataset_card, read_jsonl, write_jsonl
@@ -129,3 +134,88 @@ def test_build_prompt_batch_lists_all_labels():
     assert "Input 2: b" in prompt
     assert all(f'"{label}"' in prompt for label in LABELS)
     json.dumps(FEW_SHOT_EXAMPLES)
+
+
+def test_plural_fused_type_needs_whole_token():
+    text = "Trimming $GLXY 9/18 40Cs at +50%"
+    found, dropped = _spans(text, [{"text": "Cs", "label": "option_type"}])
+    assert found == [("Cs", "option_type", "Cs")] and not dropped
+    # The bare "C" is inside the longer token "Cs", so it can't be located.
+    _, dropped = _spans(text, [{"text": "C", "label": "option_type"}])
+    assert dropped == [("C", "option_type", "not_found")]
+
+
+def test_task_stores_tweet_id():
+    task, _ = parse_response_to_task("$A 1 C", {"entities": []}, 1, "123")
+    assert task["data"] == {"text": "$A 1 C", "tweet_id": "123"}
+    task, _ = parse_response_to_task("$A 1 C", {"entities": []}, 1)
+    assert task["data"] == {"text": "$A 1 C"}
+
+
+def test_recased_entity_matches_whole_token_in_source_casing():
+    text = "WHOS HOLDING CALLS\n\n$UNH 350 Call 4/24"
+    found, dropped = _spans(text, [{"text": "calls", "label": "option_type"}])
+    assert found == [("CALLS", "option_type", "CALLS")] and not dropped
+
+
+def test_exact_case_match_preferred_over_recased():
+    text = "CALLS and calls"
+    task, _ = parse_response_to_task(
+        text, {"entities": [{"text": "calls", "label": "option_type"}]}, 1
+    )
+    assert task["annotations"][0]["result"][0]["value"]["start"] == 10
+
+
+def test_recased_entity_never_matches_inside_longer_token():
+    for text in ("$COIN 110 puts", "buying CALLS", "$COINS"):
+        _, dropped = _spans(text, [{"text": "c", "label": "option_type"}])
+        assert dropped == [("c", "option_type", "not_found")], text
+
+
+def test_extract_entities_single_and_batch():
+    ents = [{"text": "C", "label": "option_type"}]
+    assert extract_entities(["a"], {"entities": ents}) == [ents]
+    batch = {"results": [{"index": 2, "entities": ents}]}
+    assert extract_entities(["a", "b"], batch) == [None, ents]
+
+
+def test_raw_output_saved_and_reprocessed_without_llm(tmp_path):
+    args = Namespace(
+        raw_output=str(tmp_path / "raw.jsonl"),
+        output=str(tmp_path / "tasks.json"),
+        task_id_offset=100,
+    )
+    texts = ["WHOS HOLDING CALLS", "$A 1 C"]
+    response = {
+        "results": [
+            {"index": 1, "entities": [{"text": "calls", "label": "option_type"}]},
+            {"index": 2, "entities": [{"text": "zzz", "label": "strike"}]},
+        ]
+    }
+    _save_response(texts, response, args, [7, 9], ["t7", "t9"])
+
+    raw = read_jsonl(args.raw_output)
+    assert [(r["tweet_id"], r["row_index"]) for r in raw] == [("t7", 7), ("t9", 9)]
+    assert raw[0]["entities"] == [{"text": "calls", "label": "option_type"}]
+
+    # Reprocessing rebuilds the same tasks (ids, tweet ids, spans) from raw alone.
+    before = json.load(open(args.output, encoding="utf-8"))
+    for t in before:  # region ids are random
+        for r in t["annotations"][0]["result"]:
+            r.pop("id")
+    reprocess_raw(args)
+    after = json.load(open(args.output, encoding="utf-8"))
+    for t in after:
+        for r in t["annotations"][0]["result"]:
+            r.pop("id")
+    assert after == before
+    assert [t["id"] for t in after] == [107, 109]
+
+
+def test_save_raw_upserts_by_tweet_id(tmp_path):
+    path = str(tmp_path / "raw.jsonl")
+    rec = {"tweet_id": "1", "row_index": 0, "text": "x", "entities": []}
+    save_raw([rec], path)
+    save_raw([{**rec, "entities": [{"text": "x", "label": "ticker"}]}], path)
+    rows = read_jsonl(path)
+    assert len(rows) == 1 and rows[0]["entities"][0]["text"] == "x"

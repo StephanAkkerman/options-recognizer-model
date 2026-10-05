@@ -39,6 +39,10 @@ Design choices worth knowing:
     LLM lists ONE entry per occurrence in reading order, and `_locate_entities`
     matches them to the text in that order with token-boundary checks (so "C"
     never matches inside "$COIN" and "350" never matches inside "$350K").
+  - The LLM's raw entity lists are saved per tweet to --raw-output
+    (data/preds/auto_labeled_raw.jsonl) next to the located tasks. When the
+    locating rules change, `--reprocess` rebuilds the tasks from that file
+    without calling the LLM again.
   - Output lands in `data/preds/`, not `data/labeled/`. Pre-labels need review
     before becoming training data, matching the existing pipeline convention.
   - Posts are deduped against existing labeled+test so the LLM never wastes
@@ -78,6 +82,7 @@ _LABEL_CHOICES = " | ".join(f'"{label}"' for label in LABELS)
 #   6) $-prefixed strike ("$1300 calls") — only the ticker is a cashtag
 #   7) shorthand "195c 10/16" mixed into prose; @handles/ETF names not labeled
 #   8) no options content at all
+#   9) plural fused type ("40Cs") — the "s" is part of the option_type text
 #
 # Edit / extend this list if the LLM starts missing a specific pattern in practice.
 FEW_SHOT_EXAMPLES = [
@@ -172,6 +177,17 @@ FEW_SHOT_EXAMPLES = [
         },
     },
     {
+        "input": "Trimming some of the $GLXY 9/18 40Cs at +50%",
+        "output": {
+            "entities": [
+                {"text": "$GLXY", "label": "ticker"},
+                {"text": "9/18", "label": "expiry"},
+                {"text": "40", "label": "strike"},
+                {"text": "Cs", "label": "option_type"},
+            ]
+        },
+    },
+    {
         "input": "Fed meeting tomorrow, market looks shaky. Staying in cash. NFA",
         "output": {"entities": []},
     },
@@ -207,7 +223,8 @@ SYSTEM_INSTRUCTIONS = textwrap.dedent(f"""\
     - "strike": the strike price: "350", "162.5", "$1300" (a $ here is part of
       the strike, e.g. "$1300 calls"). Not the stock's current price.
     - "option_type": call or put in any form: "C", "P", "Call", "CALL", "calls",
-      "puts", "c", "p". Label only the word/letter itself, not "buyer"/"seller".
+      "puts", "c", "p", "Cs", "Ps". Label the whole word/letter including a plural
+      "s" ("40Cs" -> "Cs", not "C"). Not "buyer"/"seller".
     - "expiry": the expiration date, as written: "10/16", "11/06/2026",
       "6/17/27", "November 20, 2026", "December", or relative like "2 days".
     - "premium": the total dollar size of the trade: "$1.2M", "$993K",
@@ -216,7 +233,7 @@ SYSTEM_INSTRUCTIONS = textwrap.dedent(f"""\
       "4.37avg", "156.28" in "@ 156.28". Label the number only, not "avg".
 
     FUSED TOKENS: split them. "210p" is "210" (strike) + "p" (option_type);
-    "195c" is "195" + "c". Use the exact substrings.
+    "195c" is "195" + "c"; "40Cs" is "40" + "Cs". Use the exact substrings.
 
     DO NOT LABEL:
     - The date a report was posted ("10/2 Notable Flow", "8/11 Notable Flow").
@@ -288,7 +305,9 @@ def _locate_entities(text, entities):
 
     Entries are matched in order: each takes the first free occurrence at or
     after the previous match, falling back to the first free occurrence anywhere
-    when the LLM listed things out of order. Returns ``(spans, dropped)``.
+    when the LLM listed things out of order. Matching is case-sensitive unless
+    the exact casing doesn't occur at all, in which case the source's own casing
+    is used for the span. Returns ``(spans, dropped)``.
     """
     spans = []
     dropped = []
@@ -299,7 +318,14 @@ def _locate_entities(text, entities):
         if not ent_text or ent_label not in LABELS:
             dropped.append((ent_text, ent_label, "invalid"))
             continue
-        found = list(re.finditer(bounded_pattern(ent_text), text))
+        pattern = bounded_pattern(ent_text)
+        found = list(re.finditer(pattern, text))
+        if not found:
+            # The LLM sometimes re-cases a word ("calls" for "CALLS"). Retry
+            # ignoring case; the letter boundaries in `bounded_pattern` still
+            # apply, so this only matches a whole token, never a fragment of
+            # a longer one ("c" can't match inside "$COIN" or "CALLS").
+            found = list(re.finditer(pattern, text, re.IGNORECASE))
         free = [
             m
             for m in found
@@ -312,16 +338,17 @@ def _locate_entities(text, entities):
             dropped.append((ent_text, ent_label, reason))
             continue
         match = next((m for m in free if m.start() >= cursor), free[0])
-        spans.append((match.start(), match.end(), ent_text, ent_label))
+        spans.append((match.start(), match.end(), match.group(), ent_label))
         cursor = match.end()
     return sorted(spans, key=lambda s: s[0]), dropped
 
 
-def parse_response_to_task(text, response_obj, task_id):
+def parse_response_to_task(text, response_obj, task_id, tweet_id=None):
     """Convert LLM JSON response to a Label Studio task, finding offsets in `text`.
 
     Drops entities whose `text` field can't be located in the source — better
-    than emitting fabricated offsets.
+    than emitting fabricated offsets. `tweet_id`, when given, is stored in
+    ``data`` so a task can be traced back to its source tweet.
     """
     spans, dropped = _locate_entities(text, response_obj.get("entities", []))
     annotation_results = [
@@ -339,9 +366,12 @@ def parse_response_to_task(text, response_obj, task_id):
         }
         for start, end, ent_text, ent_label in spans
     ]
+    data = {"text": text}
+    if tweet_id is not None:
+        data["tweet_id"] = tweet_id
     return {
         "id": task_id,
-        "data": {"text": text},
+        "data": data,
         "annotations": [
             {
                 "was_cancelled": False,
@@ -463,6 +493,79 @@ def save_tasks(tasks, output):
         json.dump(existing, f, indent=2, ensure_ascii=False)
 
 
+def extract_entities(texts, response_obj):
+    """Pull each input's raw LLM entity list out of a single or batch response.
+
+    Returns a list aligned with `texts`; an entry is ``None`` when the batch
+    response has no result for that input.
+    """
+    if len(texts) == 1:
+        return [response_obj.get("entities", [])]
+    by_idx = {
+        r["index"]: r.get("entities", [])
+        for r in response_obj.get("results", [])
+        if isinstance(r.get("index"), int)
+    }
+    return [by_idx.get(i) for i in range(1, len(texts) + 1)]
+
+
+def save_raw(records, raw_output):
+    """Upsert raw LLM output into the JSONL at `raw_output`, keyed by tweet_id.
+
+    Each record is ``{"tweet_id", "row_index", "text", "entities"}``. Storing it
+    per tweet (not per batch) keeps it reusable however the posts get batched.
+    """
+    existing = {}
+    if os.path.exists(raw_output):
+        for row in read_jsonl(raw_output):
+            existing[row["tweet_id"]] = row
+    for rec in records:
+        existing[rec["tweet_id"]] = rec
+    parent = os.path.dirname(raw_output)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(raw_output, "w", encoding="utf-8") as f:
+        for rec in existing.values():
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def _save_response(texts, response_obj, args, post_indices, tweet_ids):
+    """Save the raw LLM output, then the located tasks; print a summary."""
+    raw_records = [
+        {"tweet_id": tid, "row_index": row, "text": text, "entities": ents}
+        for text, row, tid, ents in zip(
+            texts, post_indices, tweet_ids, extract_entities(texts, response_obj)
+        )
+        if ents is not None
+    ]
+    save_raw(raw_records, args.raw_output)
+    tasks, all_dropped, missing = _response_to_tasks(
+        texts, response_obj, args.task_id_offset, post_indices, tweet_ids
+    )
+    save_tasks(tasks, args.output)
+    _print_save_summary(tasks, all_dropped, missing, args.output)
+
+
+def reprocess_raw(args):
+    """Rebuild tasks from the saved raw LLM output, with no LLM calls."""
+    if not os.path.exists(args.raw_output):
+        console.print(f"[red]No raw output at {args.raw_output}.[/red]")
+        sys.exit(1)
+    tasks, all_dropped = [], []
+    for rec in read_jsonl(args.raw_output):
+        task, dropped = parse_response_to_task(
+            rec["text"],
+            {"entities": rec["entities"]},
+            args.task_id_offset + rec["row_index"],
+            rec["tweet_id"],
+        )
+        tasks.append(task)
+        if dropped:
+            all_dropped.append((rec["tweet_id"], dropped))
+    save_tasks(tasks, args.output)
+    _print_save_summary(tasks, all_dropped, [], args.output)
+
+
 def parse_batch_response(
     texts, response_obj, task_id_offset, post_indices, tweet_ids=None
 ):
@@ -489,10 +592,13 @@ def parse_batch_response(
             missing.append(input_idx)
             continue
         post_idx = post_indices[input_idx - 1]
-        task, dropped = parse_response_to_task(text, result, task_id_offset + post_idx)
+        tweet_id = tweet_ids[input_idx - 1] if tweet_ids else None
+        task, dropped = parse_response_to_task(
+            text, result, task_id_offset + post_idx, tweet_id
+        )
         tasks.append(task)
         if dropped:
-            ref = tweet_ids[input_idx - 1] if tweet_ids else task["id"]
+            ref = tweet_id if tweet_id else task["id"]
             all_dropped.append((ref, dropped))
     return tasks, all_dropped, missing
 
@@ -525,7 +631,10 @@ def _response_to_tasks(
             texts, response_obj, task_id_offset, post_indices, tweet_ids
         )
     task, dropped = parse_response_to_task(
-        texts[0], response_obj, task_id_offset + post_indices[0]
+        texts[0],
+        response_obj,
+        task_id_offset + post_indices[0],
+        tweet_ids[0] if tweet_ids else None,
     )
     ref = tweet_ids[0] if tweet_ids else task["id"]
     return [task], ([(ref, dropped)] if dropped else []), []
@@ -616,15 +725,13 @@ def run_interactive(posts, args, line_source=None):
             console.print("[yellow]Re-paste the response for this batch.[/yellow]")
             continue  # retry the same batch — batch_idx unchanged
 
-        tasks, all_dropped, missing = _response_to_tasks(
+        _save_response(
             texts,
             response_obj,
-            args.task_id_offset,
+            args,
             [posts[i]["row_index"] for i in post_indices],
             [posts[i]["tweet_id"] for i in post_indices],
         )
-        save_tasks(tasks, args.output)
-        _print_save_summary(tasks, all_dropped, missing, args.output)
         batch_idx += 1
 
     console.print(f"\n[bold green]Done — all {total} posts processed.[/bold green]")
@@ -671,6 +778,18 @@ def main():
         help="Where to append parsed Label Studio tasks.",
     )
     parser.add_argument(
+        "--raw-output",
+        default="data/preds/auto_labeled_raw.jsonl",
+        help="Where the LLM's raw entity lists are kept, one line per tweet "
+        "(default: %(default)s).",
+    )
+    parser.add_argument(
+        "--reprocess",
+        action="store_true",
+        help="Rebuild --output from --raw-output with the current locating "
+        "rules, without calling the LLM.",
+    )
+    parser.add_argument(
         "--interactive",
         action="store_true",
         help="Loop over all unlabeled posts: emit a prompt, paste the "
@@ -697,6 +816,10 @@ def main():
         help="Where --interactive writes each round's prompt (default: %(default)s).",
     )
     args = parser.parse_args()
+
+    if args.reprocess:
+        reprocess_raw(args)
+        return
 
     posts = load_unlabeled_posts(args.input)
     if not posts:
@@ -736,15 +859,13 @@ def main():
             console.print(f"[dim]First 200 chars: {raw[:200]}[/dim]")
             sys.exit(1)
 
-        tasks, all_dropped, missing = _response_to_tasks(
+        _save_response(
             texts,
             response_obj,
-            args.task_id_offset,
+            args,
             [t["row_index"] for t in targets],
             [t["tweet_id"] for t in targets],
         )
-        save_tasks(tasks, args.output)
-        _print_save_summary(tasks, all_dropped, missing, args.output)
         return
 
     prompt = build_prompt(texts)
