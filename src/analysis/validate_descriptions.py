@@ -13,6 +13,7 @@ Usage:
     python -m src.analysis.validate_descriptions                   # latest adapter
     python -m src.analysis.validate_descriptions --adapter v2
     python -m src.analysis.validate_descriptions --adapter base    # no adapter
+    python -m src.analysis.validate_descriptions --base-model gliner2.5-small-v1
     python -m src.analysis.validate_descriptions --baseline my.json
     python -m src.analysis.validate_descriptions --show-deltas --top 30
 """
@@ -37,6 +38,7 @@ from src.core.benchmark import (
     score_predictions,
 )
 from src.core.labels import ENTITY_DESCRIPTIONS
+from src.core.models import DEFAULT_BASE, resolve_base
 
 console = Console()
 
@@ -169,6 +171,7 @@ def _render_delta_table(title, records, top):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adapter", default="latest")
+    parser.add_argument("--base-model", default=DEFAULT_BASE)
     parser.add_argument("--threshold", type=float, default=0.75)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--test-folder", default=DEFAULT_TEST_FOLDER)
@@ -178,7 +181,8 @@ def main():
     args = parser.parse_args()
 
     baseline = load_baseline(args.baseline)
-    adapter_name, adapter_path = resolve_adapter(args.adapter)
+    base = resolve_base(args.base_model)
+    adapter_name, adapter_path = resolve_adapter(args.adapter, base)
     dataset = parse_all_label_studio_exports(args.test_folder)
     if not dataset:
         console.print(f"[red]No annotated tasks found in {args.test_folder}[/red]")
@@ -194,7 +198,7 @@ def main():
         f"spans | {len(flat_chunks)} chunks | threshold={args.threshold}\n"
     )
 
-    base_model, device = load_base_model()
+    base_model, device = load_base_model(base)
     if adapter_path:
         model = copy.deepcopy(base_model)
         model.load_adapter(adapter_path)

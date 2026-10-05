@@ -54,10 +54,15 @@ Run everything from the repo root with `python -m` (needs `pip install -r requir
 | Review in Label Studio | import `data/preds/*.json`, config in `data/label_studio.xml`, export to `data/labeled/` |
 | Check for duplicate tasks | `python -m utils.labeling.check_labeled_duplicates` |
 | Hold out a test set | `python -m src.maintenance.split_test_set` |
-| Train a GLiNER2 LoRA adapter (also splits, benchmarks) | `python -m src.core.train` |
-| Benchmark adapters (exact-span F1, cached) | `python -m src.core.benchmark [--all]` |
-| Inspect errors / sweep thresholds / compare descriptions | `python -m src.analysis.error_analysis`, `threshold_sweep`, `validate_descriptions` |
-| Publish labeled data / adapter | `python -m utils.hf.push_dataset_to_hf --repo-id ...`, `python -m utils.hf.push_model_to_hf ...` |
+| Train adapters (also splits, benchmarks) | `python -m src.core.train --base-model gliner2-large-v1` (or `all`, or a comma list) |
+| Benchmark (exact-span F1 + size/speed, cached) | `python -m src.core.benchmark [--base-model ...] [--all]` |
+| Inspect errors / sweep thresholds / compare descriptions | `python -m src.analysis.error_analysis`, `threshold_sweep`, `validate_descriptions` (all take `--base-model`) |
+| Publish labeled data | `python -m utils.hf.push_dataset_to_hf --repo-id ...` |
+| Publish an adapter (one Hub repo per base model) | `python -m utils.hf.push_model_to_hf models/options_adapter_<base>_vN --owner you --threshold 0.6` |
+
+### Model sizes
+
+Adapters are trained for each base in `src/core/models.py` (`gliner2.5-small-v1`, `gliner2.5-base-v1`, `gliner2-base-v1`, `gliner2-large-v1`) on identical data, splits and seed, and each is published to its own repo, `<owner>/options-recognizer-<base>`. Pick a smaller base for speed or a larger one for accuracy; the benchmark table shows F1 next to base size and ms/doc. Each repo ships a `recognizer_config.json` (base model, labels, descriptions, threshold) so it loads without this codebase.
 
 The entity labels and their GLiNER2 descriptions live in `src/core/labels.py`.
 

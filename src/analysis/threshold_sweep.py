@@ -1,7 +1,8 @@
 """Sweep the decision threshold across all adapters on the held-out test set.
 
 Run:
-    python -m src.analysis.threshold_sweep
+    python -m src.analysis.threshold_sweep                       # every base model
+    python -m src.analysis.threshold_sweep --base-model gliner2.5-small-v1
 
 Prints one Rich table per adapter showing per-label F1 and overall
 precision / recall / F1 at each threshold, with the F1-optimal row marked.
@@ -10,6 +11,7 @@ adapter version. A less-overfit adapter has flatter confidence distributions
 and is unfairly penalised by the default 0.75 threshold.
 """
 
+import argparse
 import copy
 import os
 
@@ -23,6 +25,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from src.core.models import base_label, resolve_bases
 from src.core.benchmark import (
     DEFAULT_LABELS,
     DEFAULT_TEST_FOLDER,
@@ -82,6 +85,14 @@ def _render(name, rows):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--base-model",
+        default="all",
+        help="Slug, Hub id, comma-separated list, or 'all' (default).",
+    )
+    args = parser.parse_args()
+
     dataset = parse_all_label_studio_exports(DEFAULT_TEST_FOLDER)
     if not dataset:
         console.print(f"[red]No test data in {DEFAULT_TEST_FOLDER}.[/red]")
@@ -96,9 +107,15 @@ def main():
         f"thresholds: {THRESHOLDS[0]}..{THRESHOLDS[-1]} ({len(THRESHOLDS)} steps)"
     )
 
-    base_model, device = load_base_model()
-    configs = [("Base Model (Clean)", None)]
-    configs += [(a["name"], a["path"]) for a in get_all_adapters()]
+    bases = resolve_bases(args.base_model)
+    adapters = get_all_adapters(bases=bases)
+
+    configs = []  # (base, name, adapter_path)
+    for base in bases:
+        configs.append((base, base_label(base), None))
+        configs += [
+            (a["base"], a["name"], a["path"]) for a in adapters if a["base"] == base
+        ]
 
     all_results = []
     with Progress(
@@ -110,34 +127,36 @@ def main():
         overall_task = progress.add_task(
             "[bold cyan]Sweeping...", total=len(configs) * len(THRESHOLDS)
         )
-        for name, adapter_path in configs:
-            if adapter_path and os.path.exists(adapter_path):
-                model = copy.deepcopy(base_model)
-                model.load_adapter(adapter_path)
-            else:
-                model = base_model
+        for base in bases:
+            base_model, device = load_base_model(base)
+            for _, name, adapter_path in [c for c in configs if c[0] == base]:
+                if adapter_path and os.path.exists(adapter_path):
+                    model = copy.deepcopy(base_model)
+                    model.load_adapter(adapter_path)
+                else:
+                    model = base_model
 
-            rows = sweep_adapter(
-                model,
-                flat_chunks,
-                doc_chunk_ranges,
-                gold_per_doc,
-                THRESHOLDS,
-                progress_ctx=(progress, overall_task),
-            )
-            all_results.append((name, rows))
+                rows = sweep_adapter(
+                    model,
+                    flat_chunks,
+                    doc_chunk_ranges,
+                    gold_per_doc,
+                    THRESHOLDS,
+                    progress_ctx=(progress, overall_task),
+                )
+                all_results.append((name, rows))
+                if model is not base_model:
+                    del model
+            del base_model
+            if device == "cuda":
+                import torch
 
-            if model is not base_model:
-                del model
-                if device == "cuda":
-                    import torch
-
-                    torch.cuda.empty_cache()
+                torch.cuda.empty_cache()
 
     for name, rows in all_results:
         console.print(_render(name, rows))
 
-    summary = Table(title="Best-F1 operating point per adapter", show_lines=False)
+    summary = Table(title="Best-F1 operating point per model", show_lines=False)
     summary.add_column("Model", style="cyan")
     summary.add_column("best threshold", justify="right")
     summary.add_column("P", justify="right")
@@ -153,6 +172,10 @@ def main():
             name, f"{t:.2f}", f"{o['p']:.2%}", f"{o['r']:.2%}", f"{o['f1']:.2%}"
         )
     console.print(summary)
+    console.print(
+        "[dim]Use the best threshold per model: it goes into that adapter's "
+        "recognizer_config.json (push_model_to_hf --threshold).[/dim]"
+    )
 
 
 if __name__ == "__main__":

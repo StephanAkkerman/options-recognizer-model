@@ -4,6 +4,7 @@ Run:
     python -m src.analysis.error_analysis                       # latest adapter
     python -m src.analysis.error_analysis --adapter v4
     python -m src.analysis.error_analysis --adapter base
+    python -m src.analysis.error_analysis --base-model gliner2.5-small-v1
     python -m src.analysis.error_analysis --threshold 0.5 --top 30
     python -m src.analysis.error_analysis --save-json out.json  # full dump
 
@@ -29,6 +30,7 @@ from collections import Counter
 from rich.console import Console
 from rich.table import Table
 
+from src.core.models import DEFAULT_BASE, base_label, resolve_base
 from src.core.benchmark import (
     DEFAULT_LABELS,
     DEFAULT_TEST_FOLDER,
@@ -43,16 +45,17 @@ from src.core.benchmark import (
 console = Console()
 
 
-def resolve_adapter(spec):
-    """Resolve a --adapter spec ('latest', 'base', 'v4', etc.) to (name, path).
+def resolve_adapter(spec, base=DEFAULT_BASE):
+    """Resolve a --adapter spec ('latest', 'base', 'v4', etc.) for `base`.
 
-    `base` returns (..., None) so the caller knows to skip adapter loading.
+    Returns ``(name, path)``. `base` returns ``(..., None)`` so the caller knows
+    to skip adapter loading.
     """
     if spec == "base":
-        return ("Base Model (Clean)", None)
-    adapters = get_all_adapters()
+        return (base_label(base), None)
+    adapters = get_all_adapters(bases=[base])
     if not adapters:
-        raise SystemExit("No adapters found under ./models.")
+        raise SystemExit(f"No adapters found under ./models for {base}.")
     if spec in (None, "latest"):
         a = adapters[-1]
         return (a["name"], a["path"])
@@ -190,6 +193,11 @@ def main():
         default="latest",
         help="'latest' (default), 'base', or a version like 'v4' / '4'.",
     )
+    parser.add_argument(
+        "--base-model",
+        default=DEFAULT_BASE,
+        help="Base model slug or Hub id (default: %(default)s).",
+    )
     parser.add_argument("--threshold", type=float, default=0.75)
     parser.add_argument(
         "--top",
@@ -202,7 +210,8 @@ def main():
     parser.add_argument("--save-json", default=None)
     args = parser.parse_args()
 
-    adapter_name, adapter_path = resolve_adapter(args.adapter)
+    base = resolve_base(args.base_model)
+    adapter_name, adapter_path = resolve_adapter(args.adapter, base)
     dataset = parse_all_label_studio_exports(args.test_folder)
     if not dataset:
         console.print(f"[red]No data in {args.test_folder}.[/red]")
@@ -220,7 +229,7 @@ def main():
         f"[bold green]{len(flat_chunks)}[/bold green] chunks"
     )
 
-    base_model, device = load_base_model()
+    base_model, device = load_base_model(base)
     if adapter_path:
         model = copy.deepcopy(base_model)
         model.load_adapter(adapter_path)

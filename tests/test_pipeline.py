@@ -6,17 +6,28 @@ code paths that run a model, which these tests never touch.
 
 import json
 
+import pytest
+
 from src.analysis.error_analysis import categorize_errors, make_context
 from src.analysis.validate_descriptions import collect_delta_records
 from src.core.benchmark import (
     chunk_text_for_inference,
     collect_pred_per_doc,
     get_all_adapters,
+    latest_adapters,
     parse_all_label_studio_exports,
     prepare_eval_inputs,
     score_predictions,
 )
 from src.core.labels import ENTITY_DESCRIPTIONS, LABELS
+from src.core.models import (
+    BASE_MODELS,
+    adapter_dir_name,
+    default_repo_id,
+    parse_adapter_dir,
+    resolve_base,
+    resolve_bases,
+)
 from src.core.results_store import compute_test_set_hash
 from src.core.train import (
     entity_in_chunk,
@@ -26,6 +37,7 @@ from src.core.train import (
 )
 from src.maintenance.split_test_set import run as run_split
 from utils.hf.push_dataset_to_hf import load_clean_gold_dataset
+from utils.hf.push_model_to_hf import build_model_card, latest_benchmark
 from utils.synthetic import auto_label
 
 
@@ -102,12 +114,75 @@ def test_parse_all_labeled_data_excludes_test_ids(tmp_path):
 
 def test_get_next_version_and_adapter_discovery(tmp_path):
     models = tmp_path / "models"
-    for name in ("options_adapter", "options_adapter_v3"):
+    for name in (
+        "options_adapter_gliner2-large-v1_v3",
+        "options_adapter_gliner2-large-v1_v1",
+        "options_adapter_gliner2.5-small-v1_v2",
+        "options_adapter_unknown-model_v9",  # not in the registry: ignored
+    ):
         weights = models / name / "final"
         weights.mkdir(parents=True)
         (weights / "adapter_model.safetensors").write_bytes(b"x")
-    assert get_next_version(str(models)) == 4
-    assert [a["version"] for a in get_all_adapters(str(models))] == [1, 3]
+    assert get_next_version(str(models), "gliner2-large-v1") == 4
+    assert get_next_version(str(models), "gliner2.5-small-v1") == 3
+    assert get_next_version(str(models), "gliner2-base-v1") == 1
+    found = get_all_adapters(str(models))
+    assert [(a["base"], a["version"]) for a in found] == [
+        ("gliner2.5-small-v1", 2),
+        ("gliner2-large-v1", 1),
+        ("gliner2-large-v1", 3),
+    ]
+    assert [a["version"] for a in latest_adapters(found)] == [2, 3]
+    only_large = get_all_adapters(str(models), bases=["gliner2-large-v1"])
+    assert {a["base"] for a in only_large} == {"gliner2-large-v1"}
+
+
+def test_model_registry_roundtrips():
+    assert resolve_base("fastino/gliner2.5-base-v1") == "gliner2.5-base-v1"
+    assert resolve_bases("all") == list(BASE_MODELS)
+    assert resolve_bases("gliner2-base-v1, gliner2-large-v1") == [
+        "gliner2-base-v1",
+        "gliner2-large-v1",
+    ]
+    with pytest.raises(ValueError):
+        resolve_base("nope")
+    for slug in BASE_MODELS:
+        assert parse_adapter_dir(adapter_dir_name(slug, 7)) == (slug, 7)
+    assert parse_adapter_dir("options_adapter_v1") is None
+    assert (
+        default_repo_id("me", "gliner2-base-v1")
+        == "me/options-recognizer-gliner2-base-v1"
+    )
+
+
+def test_model_card_has_metrics_and_base():
+    result = {
+        "metrics": {
+            **score_predictions(
+                [{(0, 1, "ticker")}], [{(0, 1, "ticker")}], list(LABELS)
+            ),
+            "speed": {"ms_per_doc": 12.5},
+        },
+        "params": {"device": "cuda"},
+    }
+    card = build_model_card("gliner2.5-small-v1", 2, "me/repo", 0.6, result, "abc123")
+    assert "base_model: fastino/gliner2.5-small-v1" in card
+    assert "| ticker | 100.0% | 100.0% | 100.0% |" in card
+    assert "12.5 ms/doc" in card and "**0.6**" in card
+    assert "speed |" not in card
+
+
+def test_latest_benchmark_picks_newest():
+    store = {
+        "results": {
+            "m": {
+                "old": {"evaluated_at": "2026-01-01T00:00:00Z"},
+                "new": {"evaluated_at": "2026-02-01T00:00:00Z"},
+            }
+        }
+    }
+    assert latest_benchmark(store, "m")[0] == "new"
+    assert latest_benchmark(store, "missing") == (None, None)
 
 
 def test_chunk_offsets_map_back_to_absolute_positions():

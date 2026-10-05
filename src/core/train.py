@@ -1,12 +1,17 @@
 """Train a GLiNER2 LoRA adapter on the Label Studio exports in data/labeled.
 
-    python -m src.core.train
+    python -m src.core.train                                   # default base (large)
+    python -m src.core.train --base-model gliner2.5-small-v1
+    python -m src.core.train --base-model all                  # every registered base
 
-Refreshes the held-out test split first, trains, writes
-``models/options_adapter_vN/{best,final}`` plus ``training_metadata.json``, and
-benchmarks the result against the test set.
+Refreshes the held-out test split first, then for each base model trains an
+adapter, writes ``models/options_adapter_<base>_vN/{best,final}`` plus
+``training_metadata.json`` and ``recognizer_config.json``, and benchmarks the
+result against the test set. All bases share the same data, split and seed so
+their scores are comparable.
 """
 
+import argparse
 import glob
 import hashlib
 import json
@@ -19,6 +24,16 @@ from datetime import datetime, timezone
 from rich.console import Console
 
 from src.core.labels import ENTITY_DESCRIPTIONS
+from src.core.models import (
+    ADAPTER_PREFIX,
+    BASE_MODELS,
+    DEFAULT_BASE,
+    TRAIN_OVERRIDES,
+    adapter_dir_name,
+    adapter_label,
+    load_extractor,
+    resolve_bases,
+)
 from src.core.spans import bounded_pattern
 
 console = Console()
@@ -27,7 +42,7 @@ SEED = 42
 EARLY_STOPPING = True
 EPOCHS = 10
 VAL_FRACTION = 0.15
-ADAPTER_PREFIX = "options_adapter"
+DEFAULT_THRESHOLD = 0.75
 # Flow-list tweets are number-dense and tokenize long; 256 truncated the tail
 # of the longest ones.
 MAX_LEN = 384
@@ -44,17 +59,14 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 
-def get_next_version(models_dir="./models"):
-    """Scans the models directory to determine the next version number."""
+def get_next_version(models_dir="./models", base=DEFAULT_BASE):
+    """Next adapter version number for `base` (versions count per base model)."""
     os.makedirs(models_dir, exist_ok=True)
     max_v = 0
-    for adapter in glob.glob(os.path.join(models_dir, f"{ADAPTER_PREFIX}*")):
-        folder_name = os.path.basename(adapter)
-        match = re.search(r"_v(\d+)$", folder_name)
+    for adapter in glob.glob(os.path.join(models_dir, f"{ADAPTER_PREFIX}_{base}_v*")):
+        match = re.search(r"_v(\d+)$", os.path.basename(adapter))
         if match:
             max_v = max(max_v, int(match.group(1)))
-        elif folder_name == ADAPTER_PREFIX:
-            max_v = max(max_v, 1)
     return max_v + 1
 
 
@@ -239,6 +251,7 @@ def _summarise_folder(folder):
 
 
 def gather_training_metadata(
+    base,
     config,
     train_count,
     val_count,
@@ -266,6 +279,7 @@ def gather_training_metadata(
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_commit": _git_commit(),
         "seed": SEED,
+        "base_model": BASE_MODELS[base]["hf_id"],
         "config": {
             "num_epochs": config.num_epochs,
             "batch_size": config.batch_size,
@@ -291,31 +305,53 @@ def gather_training_metadata(
     }
 
 
-def main():
+def _finalize_adapter_files(output_dir, base, version):
+    """Post-process every saved checkpoint so it can be published as-is.
+
+    Fixes `task_type` for Hub compliance and drops a `recognizer_config.json`
+    next to the weights recording the base model, labels and default threshold
+    — enough for a consumer to load the adapter without this repo.
+    """
+    for sub in ("best", "final"):
+        folder = os.path.join(output_dir, sub)
+        if not os.path.isdir(folder):
+            continue
+        cfg_path = os.path.join(folder, "adapter_config.json")
+        if os.path.exists(cfg_path):
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                adapter_config = json.load(f)
+            adapter_config["task_type"] = "TOKEN_CLS"
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                json.dump(adapter_config, f, indent=2)
+        with open(
+            os.path.join(folder, "recognizer_config.json"), "w", encoding="utf-8"
+        ) as f:
+            json.dump(
+                {
+                    "base_model": BASE_MODELS[base]["hf_id"],
+                    "adapter_version": version,
+                    "labels": list(ENTITY_DESCRIPTIONS),
+                    "entity_descriptions": ENTITY_DESCRIPTIONS,
+                    "threshold": DEFAULT_THRESHOLD,
+                },
+                f,
+                indent=2,
+            )
+
+
+def train_one(base, compile_model=True):
+    """Train, finalize and benchmark one adapter for `base`."""
+    import gc
+
     import torch
-    from gliner2 import GLiNER2
     from gliner2.training.trainer import GLiNER2Trainer, TrainingConfig
 
-    from src.core.benchmark import (
-        BASE_MODEL_ID,
-        benchmark_adapter,
-        locate_adapter_weights,
-    )
-    from src.maintenance.split_test_set import run as refresh_test_split
+    from src.core.benchmark import benchmark_adapter, locate_adapter_weights
 
-    set_seed(SEED)
-
-    # Refresh the held-out test split before loading training data so newly
-    # labeled files get their slice held out. Deterministic via SEED.
-    console.print("[bold cyan]Refreshing stratified test split...[/bold cyan]")
-    refresh_test_split(seed=SEED)
-
-    next_version = get_next_version()
-    adapter_name = f"{ADAPTER_PREFIX}_v{next_version}"
-    output_dir = f"./models/{adapter_name}"
-
+    next_version = get_next_version(base=base)
+    output_dir = f"./models/{adapter_dir_name(base, next_version)}"
     console.print(
-        f"[bold cyan]Initializing Training Run for: v{next_version}[/bold cyan]"
+        f"[bold cyan]Training {BASE_MODELS[base]['hf_id']} -> v{next_version}[/bold cyan]"
     )
 
     labeled_folder = "data/labeled"
@@ -328,54 +364,52 @@ def main():
         f"[bold green]Train: {len(train_data)} samples | Val: {len(val_data)} samples[/bold green]"
     )
 
-    base_model = GLiNER2.from_pretrained(BASE_MODEL_ID)
-    model = torch.compile(base_model)
+    hp = {
+        "batch_size": 4,
+        "lora_rank": 32,
+        "encoder_lr": 2e-5,
+        "task_lr": 5e-4,
+        "epochs": EPOCHS,
+        **TRAIN_OVERRIDES[base],
+    }
+    effective_batch_size = hp["batch_size"] * 2
 
-    batch_size = 4
-    effective_batch_size = batch_size * 2
-    lora_rank = 32
+    base_model = load_extractor(base)
+    model = torch.compile(base_model) if compile_model else base_model
 
     config = TrainingConfig(
         output_dir=output_dir,
-        experiment_name=f"options_lora_v{next_version}",
-        num_epochs=EPOCHS,
-        batch_size=batch_size,
+        experiment_name=f"options_lora_{base}_v{next_version}",
+        num_epochs=hp["epochs"],
+        batch_size=hp["batch_size"],
         max_len=MAX_LEN,
-        gradient_accumulation_steps=effective_batch_size // batch_size,
-        encoder_lr=2e-5,
-        task_lr=5e-4,
+        gradient_accumulation_steps=effective_batch_size // hp["batch_size"],
+        encoder_lr=hp["encoder_lr"],
+        task_lr=hp["task_lr"],
         max_grad_norm=1.0,
         use_lora=True,
-        lora_r=lora_rank,
-        lora_alpha=lora_rank * 2,
+        lora_r=hp["lora_rank"],
+        lora_alpha=hp["lora_rank"] * 2,
         lora_dropout=0.1,
         lora_target_modules=["encoder"],
         save_adapter_only=True,
         fp16=False,
-        bf16=True,
+        bf16=torch.cuda.is_available(),
         seed=SEED,
         early_stopping=EARLY_STOPPING,
         early_stopping_patience=5,
+        # Windows spawns DataLoader workers, which cannot pickle the tokenizer.
+        **({"num_workers": 0} if os.name == "nt" else {}),
     )
 
     trainer = GLiNER2Trainer(model=model, config=config)
     trainer.train(train_data=train_data, eval_data=val_data)
+    console.print(f"[bold green]Adapter saved to {output_dir}/final/[/bold green]")
 
-    console.print(
-        f"[bold green]v{next_version} Adapter trained and saved to {output_dir}/final/[/bold green]"
-    )
-
-    # Fix task_type in adapter_config.json for HuggingFace Hub compliance
-    adapter_config_path = os.path.join(output_dir, "final", "adapter_config.json")
-    if os.path.exists(adapter_config_path):
-        with open(adapter_config_path, "r", encoding="utf-8") as f:
-            adapter_config = json.load(f)
-        adapter_config["task_type"] = "TOKEN_CLS"
-        with open(adapter_config_path, "w", encoding="utf-8") as f:
-            json.dump(adapter_config, f, indent=2)
-        console.print("[cyan]Set task_type to TOKEN_CLS in adapter_config.json[/cyan]")
+    _finalize_adapter_files(output_dir, base, next_version)
 
     metadata = gather_training_metadata(
+        base,
         config,
         train_count=len(train_data),
         val_count=len(val_data),
@@ -395,15 +429,50 @@ def main():
             f"[yellow]No adapter weights found under {output_dir}; "
             "skipping post-train benchmark.[/yellow]"
         )
-        raise SystemExit(0)
-    adapter_label = f"GLiNER2 Large + Adapter v{next_version}"
-    console.print(f"[cyan]Benchmarking {adapter_label}...[/cyan]")
-    metrics, test_hash = benchmark_adapter(adapter_label, adapter_final)
+        return
+    # Free the training copy before the benchmark loads its own.
+    del trainer, model, base_model
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    label = adapter_label(base, next_version)
+    console.print(f"[cyan]Benchmarking {label}...[/cyan]")
+    metrics, test_hash = benchmark_adapter(label, adapter_final, base=base)
     overall = metrics["overall"]
     console.print(
-        f"[bold]{adapter_label}[/bold] vs test set [yellow]{test_hash}[/yellow]: "
-        f"P={overall['p']:.2%}  R={overall['r']:.2%}  F1={overall['f1']:.2%}"
+        f"[bold]{label}[/bold] vs test set [yellow]{test_hash}[/yellow]: "
+        f"P={overall['p']:.2%}  R={overall['r']:.2%}  F1={overall['f1']:.2%}  "
+        f"({metrics['speed']['ms_per_doc']} ms/doc)"
     )
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--base-model",
+        default=DEFAULT_BASE,
+        help="Slug, Hub id, comma-separated list, or 'all' (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--no-compile",
+        action="store_true",
+        help="Skip torch.compile (e.g. on CPU or if compilation fails).",
+    )
+    args = parser.parse_args()
+    bases = resolve_bases(args.base_model)
+
+    from src.maintenance.split_test_set import run as refresh_test_split
+
+    # Refresh the held-out test split before loading training data so newly
+    # labeled files get their slice held out. Deterministic via SEED, so every
+    # base trains on the same data and is scored on the same test set.
+    console.print("[bold cyan]Refreshing stratified test split...[/bold cyan]")
+    refresh_test_split(seed=SEED)
+
+    for base in bases:
+        set_seed(SEED)
+        train_one(base, compile_model=not args.no_compile)
 
 
 if __name__ == "__main__":

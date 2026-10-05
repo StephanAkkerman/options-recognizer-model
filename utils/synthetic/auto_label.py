@@ -19,7 +19,7 @@ Workflow (manual mode — recommended for the first batch):
 
   Interactive mode (loop through everything without juggling files):
     `python -m utils.synthetic.auto_label --interactive [--batch-size 10]`
-    `python -m utils.synthetic.auto_label --interactive --batch-chars 40000`
+    `python -m utils.synthetic.auto_label --interactive --batch-chars 10000`
     Each round writes the prompt to --prompt-file (default
     data/auto_label/prompt.txt); copy it into your LLM, paste the JSON reply
     back in the terminal, then type END on its own line (or `q` to quit).
@@ -55,9 +55,10 @@ import sys
 import textwrap
 import uuid
 
+from rich.console import Console
+
 from src.core.spans import bounded_pattern
 from utils.hf.hf_utils import read_jsonl
-from rich.console import Console
 
 console = Console()
 
@@ -298,13 +299,17 @@ def _locate_entities(text, entities):
         if not ent_text or ent_label not in LABELS:
             dropped.append((ent_text, ent_label, "invalid"))
             continue
+        found = list(re.finditer(bounded_pattern(ent_text), text))
         free = [
             m
-            for m in re.finditer(bounded_pattern(ent_text), text)
+            for m in found
             if not any(m.start() < e and s < m.end() for s, e, _, _ in spans)
         ]
         if not free:
-            dropped.append((ent_text, ent_label, "not_found"))
+            # "already_used": the text is in the post, but the LLM listed it more
+            # times than it occurs (or it overlaps an earlier entity).
+            reason = "already_used" if found else "not_found"
+            dropped.append((ent_text, ent_label, reason))
             continue
         match = next((m for m in free if m.start() >= cursor), free[0])
         spans.append((match.start(), match.end(), ent_text, ent_label))
@@ -453,7 +458,9 @@ def save_tasks(tasks, output):
         json.dump(existing, f, indent=2, ensure_ascii=False)
 
 
-def parse_batch_response(texts, response_obj, task_id_offset, post_indices):
+def parse_batch_response(
+    texts, response_obj, task_id_offset, post_indices, tweet_ids=None
+):
     """Convert a batch `{"results": [...]}` response into Label Studio tasks.
 
     `texts` is the list of input strings (1-indexed by the LLM's "index" field).
@@ -480,7 +487,8 @@ def parse_batch_response(texts, response_obj, task_id_offset, post_indices):
         task, dropped = parse_response_to_task(text, result, task_id_offset + post_idx)
         tasks.append(task)
         if dropped:
-            all_dropped.append((input_idx, dropped))
+            ref = tweet_ids[input_idx - 1] if tweet_ids else task["id"]
+            all_dropped.append((ref, dropped))
     return tasks, all_dropped, missing
 
 
@@ -497,20 +505,25 @@ def _print_save_summary(tasks, all_dropped, missing, output):
             f"— LLM didn't return entries for these.[/yellow]"
         )
     if all_dropped:
-        console.print("[yellow]Dropped entities (not found in source text):[/yellow]")
-        for inp_i, dropped in all_dropped:
+        console.print("[yellow]Dropped entities:[/yellow]")
+        for ref, dropped in all_dropped:
             for txt, lab, reason in dropped:
-                console.print(f"  - input {inp_i}: {reason}: {txt!r} ({lab})")
+                console.print(f"  - tweet {ref}: {reason}: {txt!r} ({lab})")
 
 
-def _response_to_tasks(texts, response_obj, task_id_offset, post_indices):
+def _response_to_tasks(
+    texts, response_obj, task_id_offset, post_indices, tweet_ids=None
+):
     """Dispatch to batch or single parsing based on input count."""
     if len(texts) > 1:
-        return parse_batch_response(texts, response_obj, task_id_offset, post_indices)
+        return parse_batch_response(
+            texts, response_obj, task_id_offset, post_indices, tweet_ids
+        )
     task, dropped = parse_response_to_task(
         texts[0], response_obj, task_id_offset + post_indices[0]
     )
-    return [task], ([(1, dropped)] if dropped else []), []
+    ref = tweet_ids[0] if tweet_ids else task["id"]
+    return [task], ([(ref, dropped)] if dropped else []), []
 
 
 def _build_char_batches(posts, max_chars):
@@ -599,7 +612,11 @@ def run_interactive(posts, args, line_source=None):
             continue  # retry the same batch — batch_idx unchanged
 
         tasks, all_dropped, missing = _response_to_tasks(
-            texts, response_obj, args.task_id_offset, post_indices
+            texts,
+            response_obj,
+            args.task_id_offset,
+            post_indices,
+            [posts[i]["tweet_id"] for i in post_indices],
         )
         save_tasks(tasks, args.output)
         _print_save_summary(tasks, all_dropped, missing, args.output)
@@ -715,7 +732,11 @@ def main():
             sys.exit(1)
 
         tasks, all_dropped, missing = _response_to_tasks(
-            texts, response_obj, args.task_id_offset, post_indices
+            texts,
+            response_obj,
+            args.task_id_offset,
+            post_indices,
+            [t["tweet_id"] for t in targets],
         )
         save_tasks(tasks, args.output)
         _print_save_summary(tasks, all_dropped, missing, args.output)

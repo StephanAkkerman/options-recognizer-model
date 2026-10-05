@@ -1,0 +1,572 @@
+You are an expert at extracting stock-option contract details from tweets
+about options flow and trading.
+
+TASK: identify every entity of the types below in the input text.
+
+LABELS:
+- "ticker": the underlying's symbol. A cashtag ($ directly attached) is always
+  a ticker and the $ is part of the text: "$AAPL". A bare ALL-CAPS symbol
+  (SPY, QQQ, NVDA) is a ticker when it clearly names the underlying.
+  Company names ("Nvidia") are NOT labeled.
+- "strike": the strike price: "350", "162.5", "$1300" (a $ here is part of
+  the strike, e.g. "$1300 calls"). Not the stock's current price.
+- "option_type": call or put in any form: "C", "P", "Call", "CALL", "calls",
+  "puts", "c", "p". Label only the word/letter itself, not "buyer"/"seller".
+- "expiry": the expiration date, as written: "10/16", "11/06/2026",
+  "6/17/27", "November 20, 2026", "December", or relative like "2 days".
+- "premium": the total dollar size of the trade: "$1.2M", "$993K",
+  "23 million", "$1.4 million".
+- "price": the per-contract price / average fill: ".15" in "@ .15", "4.37" in
+  "4.37avg", "156.28" in "@ 156.28". Label the number only, not "avg".
+
+FUSED TOKENS: split them. "210p" is "210" (strike) + "p" (option_type);
+"195c" is "195" + "c". Use the exact substrings.
+
+DO NOT LABEL:
+- The date a report was posted ("10/2 Notable Flow", "8/11 Notable Flow").
+- The underlying's current stock price ("Current stock price - $41.28").
+- Percentages and moneyness ("41% OTM", "up 70%"), "avg", "OI", "IV".
+- @handles, hashtags, company names, ETF descriptions (e.g. "SPDR").
+- Slang and generic words (YOLO, NFA, FOMO, "options") — only label call/put
+  words when they refer to specific contracts being bought, sold or discussed.
+
+ONE ENTRY PER OCCURRENCE, IN READING ORDER:
+- If $AAPL appears 3 times, return 3 "$AAPL" entries, placed where they occur.
+- For a multi-line flow list, go line by line, left to right.
+- Preserve exact casing and punctuation from the source — do not normalize.
+
+OUTPUT FORMAT — return ONLY a JSON object, no commentary, no code fence:
+{"entities": [{"text": "<exact substring from input>", "label": "ticker" | "strike" | "option_type" | "expiry" | "premium" | "price"}]}
+
+Empty entities array (`{"entities": []}`) is correct for posts with no entities.
+
+BATCH MODE: You will receive multiple posts labeled "Input 1:", "Input 2:", etc.
+Return ONE JSON object with this structure (no commentary, no code fence):
+
+{"results": [
+  {"index": 1, "entities": [{"text": "...", "label": "ticker" | "strike" | "option_type" | "expiry" | "premium" | "price"}]},
+  {"index": 2, "entities": [...]},
+  ...
+]}
+
+The "index" field MUST match the corresponding "Input N:" number. Include an
+entry for EVERY input, even when entities is empty (use "entities": []).
+
+EXAMPLES (single-input format, showing what to label):
+
+Example 1
+Input: 🚨 $MCY 110 CALL 10/16 @ .35
+Output: {"entities": [{"text": "$MCY", "label": "ticker"}, {"text": "110", "label": "strike"}, {"text": "CALL", "label": "option_type"}, {"text": "10/16", "label": "expiry"}, {"text": ".35", "label": "price"}]}
+
+Example 2
+Input: $WOLF - $993K Call buyer
+Output: {"entities": [{"text": "$WOLF", "label": "ticker"}, {"text": "$993K", "label": "premium"}, {"text": "Call", "label": "option_type"}]}
+
+Example 3
+Input: 10/2 Notable Flow
+
+$AAPL 350 C 11/06/2026 $1.2M 4.37avg
+$XOM 175 P 10/09/2026 $172K .16avg (Buzzer Beater)
+Output: {"entities": [{"text": "$AAPL", "label": "ticker"}, {"text": "350", "label": "strike"}, {"text": "C", "label": "option_type"}, {"text": "11/06/2026", "label": "expiry"}, {"text": "$1.2M", "label": "premium"}, {"text": "4.37", "label": "price"}, {"text": "$XOM", "label": "ticker"}, {"text": "175", "label": "strike"}, {"text": "P", "label": "option_type"}, {"text": "10/09/2026", "label": "expiry"}, {"text": "$172K", "label": "premium"}, {"text": ".16", "label": "price"}]}
+
+Example 4
+Input: Somebody bought 23 million worth of $SPCX 210p expiring in 2 days
+Output: {"entities": [{"text": "23 million", "label": "premium"}, {"text": "$SPCX", "label": "ticker"}, {"text": "210", "label": "strike"}, {"text": "p", "label": "option_type"}, {"text": "2 days", "label": "expiry"}]}
+
+Example 5
+Input: $IREN - $430K Call Buyer - November 20, 2026 Expiry
+
+Current stock price - $41.28
+Output: {"entities": [{"text": "$IREN", "label": "ticker"}, {"text": "$430K", "label": "premium"}, {"text": "Call", "label": "option_type"}, {"text": "November 20, 2026", "label": "expiry"}]}
+
+Example 6
+Input: Institutions buying $1300 calls on $MU data via @blademapai
+Output: {"entities": [{"text": "$1300", "label": "strike"}, {"text": "calls", "label": "option_type"}, {"text": "$MU", "label": "ticker"}]}
+
+Example 7
+Input: Technology remains strong, big flows in SPDR $XLK. Nearly $2M of the 195c 10/16 opened in the last couple of weeks
+Output: {"entities": [{"text": "$XLK", "label": "ticker"}, {"text": "$2M", "label": "premium"}, {"text": "195", "label": "strike"}, {"text": "c", "label": "option_type"}, {"text": "10/16", "label": "expiry"}]}
+
+Example 8
+Input: Fed meeting tomorrow, market looks shaky. Staying in cash. NFA
+Output: {"entities": []}
+
+Now label the following 96 inputs. Return ONE JSON object with a 'results' array as described above.
+
+Input 1: 10/2 Notable Flow
+
+$AAPL 350 C 11/06/2026 $1.2M 4.37avg
+$AMPL 15 C 10/16/2026 $427K .52avg
+$AVGO 355 C 11/06/2026 $4M 16.19avg
+$POET 11 C 04/16/2027 $2.6M 1.11avg 41% OTM
+$XOM 175 C 10/09/2026 $172K .16avg (Buzzer Beater)
+
+Input 2: 3 back to back short dated flows on different oil names came in during power hour earlier today
+
+$CVX 220 C 10/09/2026 $202K
+$OXY 62 C 10/09/2026 $163K
+$XOM 175 C 10/09/2026 $172K -- This one came in 1 minute before the market closed
+
+Might be nothing, might be something. Worth keeping an eye out and let's see if there happens to be any war related news that comes out Sunday at 6pm est for the globex open on futures
+
+Input 3: How did they know? $WOLF
+
+$WOLF - $993K Call buyer
+
+Input 4: ADDING HEAVY
+
+🚨 $AVNT 45 CALL 10/16 @ .15
+
+Input 5: ADDING HEAVY
+
+🚨 $AVNT 45 CALL 10/16 @ .20
+
+Input 6: 🚨 $SPCX 165 CALL 10/9 @ 1.55
+
+Input 7: 🚨 $MCY 110 CALL 10/16 @ .35
+
+Input 8: 🚨 $MCY 110 CALL 10/16 @ .40
+
+Input 9: Technology remains strong. Recent large flows in the SPDR $XLK technology ETF have preceded this recent move
+
+Nearly $2M of the 195c 10/16 opened in the last couple of weeks
+
+The 200c saw similar flows, these totaling $1.3M
+
+Traders may be speculating on further upside going into the middle of the month, as the 205c had a trader (albeit much smaller) active recently as well
+
+Input 10: Someone's buying $1M worth of $AAPL 350 calls for 11/6exp
+
+Input 11: 🚨 $DAC 170 CALL 10/16 @ .80
+
+this can go 100% fast
+
+Input 12: 🚨 $LRN 85 CALL 10/16 @ .50
+
+Input 13: They were ready for this $SPCX move
+
+10000 of the 10/16 162.5c opened Tuesday
+
+Input 14: $APEI UP +140% 🔥
+
+🚨 $APEI 45 CALL 10/16 @ .45
+
+Input 15: $DAC UP +70% 🔥🤑
+
+🚨 $DAC 165 CALL 10/16 @ 1.00
+
+Input 16: Noteworthy flow from yesterday
+(OI Confirmed)
+
+$MSTR 172.5 Call (10/23) - $3.9M @ 5.27
+$BIRK 35 Call (11/20) - $1.4M @ 1.70
+$WULF 15 Call (11/20) - $2.5M @ 1.75
+$CCL 25 Call (12/18) - $1.4M @ 1.75
+$STLA 5 Call (12/18) - $756K @ 0.36
+$LITE 1150 Call (1/15/27) - $30M @ 139.92
+$RBLX 55 Call (1/15/27) - $1.2M @ 2.70
+
+Input 17: Open Interest Update
+(Check original tweet for contract info)
+
+$BIRK 7,736/8,595 ✅
+$CCL 6,618/8,512 ✅
+$FRMI 30,385/39,721 ✅
+$IOT 2,938/3,702 ✅
+$LITE 1,955/2,146 ✅
+$MSTR 5,676/7,426 ✅
+$WULF 7,052/14,352 ❌
+
+The check mark indicates that the whale held more than half of their position.
+
+10/1 Notable Flow
+
+$BIRK 35 C 11/20/2026 $1.4M 1.70avg
+$CCL 25 C 12/18/2026 $1.4M 1.75avg
+$FRMI 7.5 C 01/15/2027 $1.1M .30avg 85% OTM
+$IOT 42 C 12/18/2026 $1.1M 3.02avg
+$LITE 1150 C 01/15/2027 $30M 139.92avg 10% OTM
+$MSTR 172.5 C 10/23/2026 $3.9M 5.27avg
+$WULF 15 C 11/20/2026 $2.5M 1.75avg
+
+Input 18: 10/1 Notable Flow
+
+$BIRK 35 C 11/20/2026 $1.4M 1.70avg
+$CCL 25 C 12/18/2026 $1.4M 1.75avg
+$FRMI 7.5 C 01/15/2027 $1.1M .30avg 85% OTM
+$IOT 42 C 12/18/2026 $1.1M 3.02avg
+$LITE 1150 C 01/15/2027 $30M 139.92avg 10% OTM
+$MSTR 172.5 C 10/23/2026 $3.9M 5.27avg
+$WULF 15 C 11/20/2026 $2.5M 1.75avg
+
+Input 19: $STLA - $675K Call buyer
+
+Input 20: 🚨 $CAC 60 CALL 10/16 @ .20
+
+Input 21: 🚨 $SKWD 60 CALL 10/16 @ .20
+
+this can double fast
+
+@everyone
+
+Input 22: $APEI UP +90% 🔥
+
+🚨 $APEI 45 CALL 10/16 @ .45
+
+Input 23: 🚨 $UVE 45 CALL 10/16 @ .40
+
+Input 24: 🚨 $UVE 45 CALL 10/16 @ .35
+
+$apei type play🔥
+
+Input 25: $DKNG RUNNERS +260% 🔥☢️
+
+🚨 $DKNG 20 PUT 10/02 @ .36
+
+52 week breakdown + $FLUT sympathy 🩸
+
+Input 26: 🚨 $SPNT 25 CALL 10/16 @ .55
+
+Input 27: $BIRK - $981K Call buyer
+
+Input 28: 🚨 $DAC 165 CALL 10/16 @ 1.00
+
+Input 29: $APEI UP 50% 🔥
+
+🚨 $APEI 45 CALL 10/16 @ .45
+
+Input 30: $IDT UP +400% ☢️🔥
+
+🚨 $IDT 80 CALL 10/16 @ .60
+
+this can double fast
+
+Input 31: Noteworthy flow from yesterday
+(OI Confirmed)
+
+$XLU 41 Call (10/30) - $2.2M @ 0.40
+$AMZN 270 Call (11/6) - $1.2M @ 6.00
+$TSM 460 Call (11/6) - $25.7M @ 20.60
+$TLT 83 Call (11/30) - $3.5M @ 0.37
+$GOOG 375 Call (12/18) - $4.6M @ 12.87
+
+Input 32: Open Interest Update
+(Check original tweet for contract info)
+
+$BA 5,055/5,786 ✅
+$BE 4,164/4,208 ✅
+$GILD 4,416/4,632 ✅
+$GOOG 2,244/3,593 ✅
+$RIOT 12,956/15,226 ✅
+$XLU 53,152/56,002 ✅
+
+The check mark indicates that the whale held more than half of their position.
+
+9/30 Notable Flow
+
+$BA 210 C 11/20/2026 $1.7M 3.08avg 13% OTM
+$BE 260 P 01/15/2027 $13.8M 32.87avg
+GILD 140 P 11/20/2026 $1.5M 3.27avg
+$GOOG 375 C 12/18/2026 $4.6M 12.87avg 10% OTM
+$RIOT 22 C 10/30/2026 $2M 1.37avg
+$XLU 41 C 10/30/2026 $2.3M .41avg
+
+Input 33: 9/30 Notable Flow
+
+$BA 210 C 11/20/2026 $1.7M 3.08avg 13% OTM
+$BE 260 P 01/15/2027 $13.8M 32.87avg
+GILD 140 P 11/20/2026 $1.5M 3.27avg
+$GOOG 375 C 12/18/2026 $4.6M 12.87avg 10% OTM
+$RIOT 22 C 10/30/2026 $2M 1.37avg
+$XLU 41 C 10/30/2026 $2.3M .41avg
+
+Input 34: $1200 calls on $MU are $7
+
+Spensive...
+
+Input 35: $HHH UP +500% 🔥☢️
+
+🚨 $HHH 65 CALL 10/16 @ 2.00
+
+Input 36: $IDT UP +300% ☢️
+
+🚨 $IDT 80 CALL 10/16 @ .60
+
+this can double fast
+
+Input 37: $DKNG UP +200% 🔥
+
+🚨 $DKNG 20 PUT 10/02 @ .36
+
+52 week breakdown + $FLUT sympathy 🩸
+
+Input 38: 🚨 $CPK 135 CALL 10/16 @ HERE
+
+below my fill
+
+Input 39: 🚨 $CPK 135 CALL 10/16 @ HERE 🔥
+
+Input 40: ADDING HEAVY UNDER PRICED CONTRACTS
+
+🚨 $CPK 135 CALL 10/16 @ HERE
+
+Input 41: ADDING SUPER HEAVY UNDER PRICED CONTRACTS
+
+🚨 $CPK 135 CALL 10/16 @ 1.00
+
+Input 42: ADDING HEAVY UNDER PRICED CONTRACTS
+
+🚨 $JAZZ 250 CALL 10/16 @ ..85
+
+Input 43: 🚨 $APEI 45 CALL 10/16 @ .45
+
+Input 44: You are not bullish enough 🤯 $INTC $230 calls
+
+Input 45: Someone is buying $GOOG 375 C 12/18/2026 for $4.5M
+
+Input 46: $AFRM - $511K Call buyer
+
+Input 47: $IDT UP 150% 🔥🏦
+
+🚨 $IDT 80 CALL 10/16 @ .60
+
+this can double fast
+
+Input 48: ADDING HEAVY
+
+🚨 $NTCT 45 CALL 10/16 @ .25
+
+Input 49: Another bull $PACB. Also 8% higher since last post
+
+$PACB - $95K Call buyer
+
+Input 50: ADDING HEAVY
+
+🚨 $SEIC 110 CALL 10/16 @ .50
+
+Input 51: 🚨 $SEIC 110 CALL 10/16 @ .55
+
+Input 52: Large $RIOT call buyers coming in here even though RIOT is down -3% on the day
+
+$RIOT 22 C 10/30/2026 for $1.3M
+
+Input 53: $PACB - $95K Call buyer
+
+Input 54: $PATH - $494K Call buyer
+
+Input 55: $AMZN - $845K Call buyer
+
+Input 56: Oh my $MDB 🤯🤯🤯
+
+$MDB - $399K Call buyer
+
+Input 57: $ONDS - $295K Call buyer
+
+Input 58: Noteworthy flow from yesterday
+(OI Confirmed)
+
+$SPCX 162.5 Call (10/16) - $2.1M @ 1.72
+$BIRK 35 Call (10/16) - $550K @ 0.59
+$MSTR 165 Call (10/23) - $3.6M @ 6.58
+$FRVO 15 Call (11/20) - $346K @ 1.60
+$INTC 145 Call (2/19/27) - $3M @ 12.07
+
+Input 59: Open Interest Update
+(Check original tweet for contract info)
+
+$INTC 2,050/2,550 ✅
+$MSTR 4,103/5,619 ✅
+$SPCX 10,102/12,340 ✅
+$TLT 15,519/16,908 ✅
+$UBER 3,590/4,389 ✅
+
+The check mark indicates that the whale held more than half of their position.
+
+9/29 Notable Flow
+
+$INTC 145 C 02/19/2027 $3M 12.07avg 25% OTM
+$MSTR 165 C 10/23/2026 $3.7M 6.58avg
+$SPCX 162.5 C 10/16/2026 $2.1M 1.72avg
+$TLT 78 P 11/06/2026 $2.9M 1.72avg
+$UBER 72.5 C 01/15/2027 $2M 4.57avg
+
+Input 60: Big day in the Nasdaq! $QQQ now up over 2.5% today
+
+The QQQ 815c December expiration saw a big 13,000 size trade this morning, closing in on an intraday 75% return now.
+
+Live options flow posted in the UW Discord for subscribers to the UW platform:
+
+$QQQ 815c 12/18/2026 seeing 13000+ opened
+
+Input 61: 9/29 Notable Flow
+
+$INTC 145 C 02/19/2027 $3M 12.07avg 25% OTM
+$MSTR 165 C 10/23/2026 $3.7M 6.58avg
+$SPCX 162.5 C 10/16/2026 $2.1M 1.72avg
+$TLT 78 P 11/06/2026 $2.9M 1.72avg
+$UBER 72.5 C 01/15/2027 $2M 4.57avg
+
+Input 62: $FRVO - $312K Call buyer
+
+Input 63: $WOLF - $993K Call buyer
+
+Input 64: $DKNG UP +100% 🤑🔥
+
+🚨 $DKNG 20 PUT 10/02 @ .36
+
+52 week breakdown + $FLUT sympathy 🩸
+
+Input 65: OMG IM SHAKING
+
+🚨 $DKNG 20 PUT 10/02 @ .36
+
+52 week breakdown + $FLUT sympathy 🩸
+
+Input 66: $MDB - $399K Call buyer
+
+Input 67: $BIRK - $245K Call buyer
+
+Input 68: 🚨 $DKNG 20 PUT 10/02 @ .36
+
+52 week breakdown + $FLUT sympathy 🩸
+
+Input 69: 🚨 $UTL 55 CALL 10/16 @ .20
+
+UNDERVALUED CONTRACTS
+
+Input 70: 🚨 $UTL 55 CALL 10/16 @ .30
+
+UNDERVALUED CONTRACTS 🚨
+
+Input 71: 🚨 $UTL 55 CALL 10/16 @ .30
+
+UNDERVALUED CONTRACTS
+
+Input 72: 🚨 $FLUT 70 PUT 10/16 @ .1.45
+
+suspicious downside flow
+
+Input 73: Institutions buying $1300 calls on $MU data via @blademapai
+
+Input 74: 🚨 $IDT 80 CALL 10/16 @ .60
+
+this can double fast
+
+Input 75: ADDING HEAVY
+
+🚨 $PCB 30 CALL 10/16 @ .40
+
+Input 76: ADDING HEAVY
+
+🚨 $PCB 30 CALL 10/16 @ .55
+
+Input 77: 9/18 Notable Flow
+
+$AAPL 335 C 09/17/2027 $9.3M 43.09avg
+$AMZN 305 C 12/17/2027 $4M 27.82avg 20% OTM
+$CVX 230 C 09/25/2026 $139K .11avg 10% OTM (Buzzer Beater)
+$ERAS 17.5 C 11/20/2026 $2.8M 2.02avg 18% OTM
+$GOOG 390 C 10/16/2026 $1.4M 1.66avg 13% OTM
+$RARE 15 C 01/15/2027 $3M 2.53avg
+$SPY 745 P 10/30/2026 $17M 7.87avg
+$XBI 160 C 01/15/2027 $2.2M 10.34avg
+
+Input 78: $SN SharkNinja calls seeing over a 3x return - big flows spotted Friday afternoon into the 165c 9/18
+
+Access to big options trades + much more with Unusual Whales options flow data:
+
+Input 79: Just today in under 5 hours I gave YOU ALL over 300% in gains…
+
+I GAVE YOU $IMOS 60 CALL FOR 200%🥰
+
+I GAVE YOU $BMI 135 CALL FOR 100%🥰
+
+I’m up at 4am everyday prepping for each trading day, and posting my thoughts on X for you guys for completely free
+
+all my trades are timestamped here on X for everyone to see live
+
+like this post to jump onboard
+
+Input 80: OMG IM SHAKING
+
+🚨 $IMOS 60 CALL 9/18 @ .60
+
+THIS CAN DOUBLE FAST
+
+Input 81: $IMOS @.70 here 🔥
+
+🚨 $IMOS 60 CALL 9/18 @ .60
+
+THIS CAN DOUBLE FAST
+
+Input 82: $CRWD - $854K Call buyer. Next week expiration
+
+Input 83: 🚨 $IMOS 60 CALL 9/18 @ .60
+
+THIS CAN DOUBLE FAST
+
+Input 84: $NEE - $491K Put buyer
+
+Input 85: $BMI +100% 🔥🏦
+
+🚨 $BMI 135 CALL 9/18 @ .65
+
+THIS CAN DOUBLE FAST
+
+Input 86: OMG IT DOUBLED FAST
+
+🚨 $BMI 135 CALL 9/18 @ .65
+
+THIS CAN DOUBLE FAST
+
+Input 87: 🚨 $BMI 135 CALL 9/18 @ .65
+
+THIS CAN DOUBLE FAST
+
+Input 88: Massive sized $AAPL leap coming in for $8.6M on the 335 call strike for 9/17/2027
+
+Input 89: Someone's buying $AMZN 305 C 12/17/2027 for $3.8M
+
+This is a 21% OTM contract with a year+ out til expiry
+
+Input 90: $INTC - $5M Put seller (bullish)
+
+Input 91: $GOOG - $13.3M Put seller (Bullish)
+
+Input 92: Open Interest Update
+(Check original tweet for contract info)
+
+$DHR 6,340/6,767 ✅
+$HOOD 2,458/2,465 ✅
+$MU 8,335/12,347 ✅
+$QUBT 8,782/9,877 ✅
+$SMH 2,136/2,260 ✅
+$TSLA 863/2,674 ❌
+
+The check mark indicates that the whale held more than half of their position.
+
+9/17 Notable Flow
+
+$DHR 250 C 01/15/2027 $2.9M 4.35avg 18% OTM
+$HOOD 145 C 09/17/2027 $4.6M 18.92avg 32% OTM
+$MU 1000 C 10/02/2026 $53.9M 43.69avg
+$QUBT 13 C 10/30/2026 $179K .18avg 54% OTM
+$SMH 572.5 C 09/29/2026 $1.6M 7.33avg
+$TSLA 370 C 10/09/2026 $3.8M 14.22avg
+
+Input 93: 9/17 Notable Flow
+
+$DHR 250 C 01/15/2027 $2.9M 4.35avg 18% OTM
+$HOOD 145 C 09/17/2027 $4.6M 18.92avg 32% OTM
+$MU 1000 C 10/02/2026 $53.9M 43.69avg
+$QUBT 13 C 10/30/2026 $179K .18avg 54% OTM
+$SMH 572.5 C 09/29/2026 $1.6M 7.33avg
+$TSLA 370 C 10/09/2026 $3.8M 14.22avg
+
+Input 94: 🚨 🚨 $FET 85 CALL 9/18 @ .55
+
+Input 95: 🚨 $FET 85 CALL 9/18 @ .55
+
+Input 96: Someone's buying a 35% OTM contract on $HOOD 145 call strike expiring 9/17/2027 -- a whole year out with $2.7M on the line!
+
+Output:
