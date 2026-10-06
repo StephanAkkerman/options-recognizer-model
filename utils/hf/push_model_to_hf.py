@@ -13,6 +13,7 @@ Run ``python -m src.core.benchmark`` first so the card has numbers, and
 """
 
 import argparse
+import inspect
 import json
 import os
 import shutil
@@ -28,6 +29,7 @@ from src.core.models import (
     parse_adapter_dir,
 )
 from src.core.results_store import load_store
+from src.core.spans import AlnumBoundarySplitter
 
 
 def latest_benchmark(store, name):
@@ -98,6 +100,7 @@ def build_model_card(slug, version, repo_id, threshold, result=None, test_hash=N
         f'adapter_dir = snapshot_download("{repo_id}")',
         'cfg = json.load(open(f"{adapter_dir}/recognizer_config.json"))',
         'model = GLiNER2.from_pretrained(cfg["base_model"])',
+        "model.set_word_splitter(AlnumBoundarySplitter())  # required, see below",
         "model.load_adapter(adapter_dir)",
         "",
         "result = model.extract_entities(",
@@ -108,6 +111,18 @@ def build_model_card(slug, version, repo_id, threshold, result=None, test_hash=N
         "```",
         "",
         f"Recommended threshold: **{threshold}**.",
+        "",
+        "## Required word splitter",
+        "",
+        "The adapter was trained with a custom word splitter that breaks between "
+        "letters and digits, so `1.58avg` and `11/20exp` tokenize cleanly. "
+        "Define it before loading the adapter, or accuracy drops sharply:",
+        "",
+        "```python",
+        "import re",
+        "",
+        inspect.getsource(AlnumBoundarySplitter).rstrip(),
+        "```",
         "",
     ]
     return "\n".join(lines)

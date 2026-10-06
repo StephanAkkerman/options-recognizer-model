@@ -12,6 +12,7 @@ their scores are comparable.
 """
 
 import argparse
+import gc
 import glob
 import hashlib
 import json
@@ -21,6 +22,9 @@ import re
 import subprocess
 from datetime import datetime, timezone
 
+import numpy as np
+import torch
+from gliner2.training.trainer import GLiNER2Trainer, TrainingConfig
 from rich.console import Console
 
 from src.core.labels import ENTITY_DESCRIPTIONS
@@ -49,8 +53,6 @@ MAX_LEN = 384
 
 
 def set_seed(seed):
-    import numpy as np
-    import torch
 
     random.seed(seed)
     np.random.seed(seed)
@@ -308,21 +310,15 @@ def gather_training_metadata(
 def _finalize_adapter_files(output_dir, base, version):
     """Post-process every saved checkpoint so it can be published as-is.
 
-    Fixes `task_type` for Hub compliance and drops a `recognizer_config.json`
-    next to the weights recording the base model, labels and default threshold
-    — enough for a consumer to load the adapter without this repo.
+    Drops a `recognizer_config.json` next to the weights recording the base
+    model, labels and default threshold — enough for a consumer to load the adapter without this repo. The
+    adapter config is left untouched (the Hub `task_type` is set at upload
+    time) so the local copy stays loadable by the benchmark.
     """
     for sub in ("best", "final"):
         folder = os.path.join(output_dir, sub)
         if not os.path.isdir(folder):
             continue
-        cfg_path = os.path.join(folder, "adapter_config.json")
-        if os.path.exists(cfg_path):
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                adapter_config = json.load(f)
-            adapter_config["task_type"] = "TOKEN_CLS"
-            with open(cfg_path, "w", encoding="utf-8") as f:
-                json.dump(adapter_config, f, indent=2)
         with open(
             os.path.join(folder, "recognizer_config.json"), "w", encoding="utf-8"
         ) as f:
@@ -333,6 +329,7 @@ def _finalize_adapter_files(output_dir, base, version):
                     "labels": list(ENTITY_DESCRIPTIONS),
                     "entity_descriptions": ENTITY_DESCRIPTIONS,
                     "threshold": DEFAULT_THRESHOLD,
+                    "word_splitter": "AlnumBoundarySplitter (src/core/spans.py)",
                 },
                 f,
                 indent=2,
@@ -341,11 +338,6 @@ def _finalize_adapter_files(output_dir, base, version):
 
 def train_one(base, compile_model=True):
     """Train, finalize and benchmark one adapter for `base`."""
-    import gc
-
-    import torch
-    from gliner2.training.trainer import GLiNER2Trainer, TrainingConfig
-
     from src.core.benchmark import benchmark_adapter, locate_adapter_weights
 
     next_version = get_next_version(base=base)
@@ -430,6 +422,7 @@ def train_one(base, compile_model=True):
             "skipping post-train benchmark.[/yellow]"
         )
         return
+
     # Free the training copy before the benchmark loads its own.
     del trainer, model, base_model
     gc.collect()
@@ -463,6 +456,11 @@ def main():
     bases = resolve_bases(args.base_model)
 
     from src.maintenance.split_test_set import run as refresh_test_split
+
+    # Check if cuda is available otherwise stop
+    if not torch.cuda.is_available():
+        console.print("[bold red]CUDA is not available. Exiting.[/bold red]")
+        return
 
     # Refresh the held-out test split before loading training data so newly
     # labeled files get their slice held out. Deterministic via SEED, so every

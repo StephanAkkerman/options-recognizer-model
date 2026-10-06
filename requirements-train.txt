@@ -5,3 +5,5 @@ transformers
 safetensors
 datasets
 numpy
+protobuf
+hf_xet

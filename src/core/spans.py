@@ -25,3 +25,28 @@ def bounded_pattern(ent_text):
     else:
         right = ""
     return left + re.escape(ent_text) + right
+
+
+class AlnumBoundarySplitter:
+    """GLiNER2 word splitter that also breaks between letters and digits.
+
+    The stock splitter keeps whole words together, so in ``1.58avg``, ``11/20exp``
+    and ``375C`` the gold span ends mid-word and can neither be trained on nor
+    predicted. Splitting at letter/digit boundaries makes those spans
+    word-aligned. Must be used identically at train and inference time.
+    """
+
+    _PATTERN = re.compile(
+        r"""(?:https?://[^\s]+|www\.[^\s]+)
+        |[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}
+        |@[a-z0-9_]+
+        |[^\W\d_]+(?:[-_][^\W\d_]+)*
+        |\d+
+        |\S""",
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+    def __call__(self, text, lower=True):
+        for m in self._PATTERN.finditer(text):
+            token = m.group()
+            yield (token.lower() if lower else token), m.start(), m.end()

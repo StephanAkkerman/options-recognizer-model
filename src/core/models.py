@@ -7,6 +7,8 @@ the org prefix and doubles as the adapter-folder / Hub-repo suffix.
 
 import re
 
+from src.core.spans import AlnumBoundarySplitter
+
 ADAPTER_PREFIX = "options_adapter"
 HUB_REPO_PREFIX = "options-recognizer"
 
@@ -99,4 +101,8 @@ def load_extractor(slug, **kwargs):
     """
     from gliner2 import AutoExtractor
 
-    return AutoExtractor.from_pretrained(BASE_MODELS[slug]["hf_id"], **kwargs)
+    model = AutoExtractor.from_pretrained(BASE_MODELS[slug]["hf_id"], **kwargs)
+    # Train, benchmark and analysis all load through here, so they share one
+    # tokenization; see AlnumBoundarySplitter for why the default is unusable.
+    model.set_word_splitter(AlnumBoundarySplitter())
+    return model
