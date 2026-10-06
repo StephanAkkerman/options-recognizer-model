@@ -33,7 +33,10 @@ class AlnumBoundarySplitter:
     The stock splitter keeps whole words together, so in ``1.58avg``, ``11/20exp``
     and ``375C`` the gold span ends mid-word and can neither be trained on nor
     predicted. Splitting at letter/digit boundaries makes those spans
-    word-aligned. Must be used identically at train and inference time.
+    word-aligned. Dates (``10/16/2026``) and numbers with decimals or thousands
+    separators (``5.1``, ``18,140``) stay whole so a fragment such as the ``10``
+    of a date can never be proposed as a strike. Must be used identically at
+    train and inference time.
     """
 
     _PATTERN = re.compile(
@@ -41,7 +44,8 @@ class AlnumBoundarySplitter:
         |[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}
         |@[a-z0-9_]+
         |[^\W\d_]+(?:[-_][^\W\d_]+)*
-        |\d+
+        |\d{1,2}/\d{1,2}(?:/\d{2,4})?(?![\d,.]\d)
+        |\d+(?:[.,]\d+)*
         |\S""",
         re.VERBOSE | re.IGNORECASE,
     )
