@@ -1,5 +1,7 @@
 """Token-boundary matching shared by auto-labeling and training."""
 
+import json
+import os
 import re
 
 
@@ -54,3 +56,49 @@ class AlnumBoundarySplitter:
         for m in self._PATTERN.finditer(text):
             token = m.group()
             yield (token.lower() if lower else token), m.start(), m.end()
+
+
+class AlnumBoundarySplitterV1(AlnumBoundarySplitter):
+    """Earlier revision (adapter v2): numbers broke at every ``.``, ``,`` and ``/``.
+
+    Kept only so adapters trained with it can still be scored faithfully.
+    """
+
+    _PATTERN = re.compile(
+        r"""(?:https?://[^\s]+|www\.[^\s]+)
+        |[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}
+        |@[a-z0-9_]+
+        |[^\W\d_]+(?:[-_][^\W\d_]+)*
+        |\d+
+        |\S""",
+        re.VERBOSE | re.IGNORECASE,
+    )
+
+
+# An adapter is only valid with the splitter it was trained under, so training
+# records one of these names in recognizer_config.json and loading reads it back.
+SPLITTERS = {
+    "whitespace": "whitespace",  # GLiNER2's stock splitter (adapter v1)
+    "alnum-v1": AlnumBoundarySplitterV1,
+    "alnum-v2": AlnumBoundarySplitter,
+}
+CURRENT_SPLITTER = "alnum-v2"
+
+
+def make_splitter(name):
+    """Splitter spec for `GLiNER2.set_word_splitter` (an instance or built-in name)."""
+    spec = SPLITTERS[name]
+    return spec if isinstance(spec, str) else spec()
+
+
+def adapter_splitter_name(adapter_path):
+    """Splitter an adapter was trained with, from its ``recognizer_config.json``.
+
+    Adapters without the field predate custom splitters (adapter v1) and used
+    GLiNER2's stock one.
+    """
+    cfg_path = os.path.join(adapter_path, "recognizer_config.json")
+    if not os.path.exists(cfg_path):
+        return "whitespace"
+    with open(cfg_path, "r", encoding="utf-8") as f:
+        return json.load(f).get("word_splitter", "whitespace")

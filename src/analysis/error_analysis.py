@@ -23,14 +23,13 @@ Plus a per-document hotspot table — top docs by error count.
 """
 
 import argparse
-import copy
 import json
 from collections import Counter
 
 from rich.console import Console
 from rich.table import Table
 
-from src.core.models import DEFAULT_BASE, base_label, resolve_base
+from src.core.models import DEFAULT_BASE, base_label, load_adapted, resolve_base
 from src.core.benchmark import (
     DEFAULT_LABELS,
     DEFAULT_TEST_FOLDER,
@@ -231,8 +230,7 @@ def main():
 
     base_model, device = load_base_model(base)
     if adapter_path:
-        model = copy.deepcopy(base_model)
-        model.load_adapter(adapter_path)
+        model = load_adapted(base_model, adapter_path)
     else:
         model = base_model
 

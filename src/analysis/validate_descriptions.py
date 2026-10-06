@@ -19,7 +19,6 @@ Usage:
 """
 
 import argparse
-import copy
 import json
 import os
 from collections import Counter
@@ -38,7 +37,7 @@ from src.core.benchmark import (
     score_predictions,
 )
 from src.core.labels import ENTITY_DESCRIPTIONS
-from src.core.models import DEFAULT_BASE, resolve_base
+from src.core.models import DEFAULT_BASE, load_adapted, resolve_base
 
 console = Console()
 
@@ -200,8 +199,7 @@ def main():
 
     base_model, device = load_base_model(base)
     if adapter_path:
-        model = copy.deepcopy(base_model)
-        model.load_adapter(adapter_path)
+        model = load_adapted(base_model, adapter_path)
         del base_model
     else:
         model = base_model

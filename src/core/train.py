@@ -20,6 +20,7 @@ import os
 import random
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 
 import numpy as np
@@ -38,7 +39,7 @@ from src.core.models import (
     load_extractor,
     resolve_bases,
 )
-from src.core.spans import bounded_pattern
+from src.core.spans import CURRENT_SPLITTER, bounded_pattern
 
 console = Console()
 
@@ -329,7 +330,7 @@ def _finalize_adapter_files(output_dir, base, version):
                     "labels": list(ENTITY_DESCRIPTIONS),
                     "entity_descriptions": ENTITY_DESCRIPTIONS,
                     "threshold": DEFAULT_THRESHOLD,
-                    "word_splitter": "AlnumBoundarySplitter (src/core/spans.py)",
+                    "word_splitter": CURRENT_SPLITTER,
                 },
                 f,
                 indent=2,
@@ -338,7 +339,7 @@ def _finalize_adapter_files(output_dir, base, version):
 
 def train_one(base, compile_model=True):
     """Train, finalize and benchmark one adapter for `base`."""
-    from src.core.benchmark import benchmark_adapter, locate_adapter_weights
+    from src.core.benchmark import locate_adapter_weights
 
     next_version = get_next_version(base=base)
     output_dir = f"./models/{adapter_dir_name(base, next_version)}"
@@ -429,15 +430,19 @@ def train_one(base, compile_model=True):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    label = adapter_label(base, next_version)
-    console.print(f"[cyan]Benchmarking {label}...[/cyan]")
-    metrics, test_hash = benchmark_adapter(label, adapter_final, base=base)
-    overall = metrics["overall"]
-    console.print(
-        f"[bold]{label}[/bold] vs test set [yellow]{test_hash}[/yellow]: "
-        f"P={overall['p']:.2%}  R={overall['r']:.2%}  F1={overall['f1']:.2%}  "
-        f"({metrics['speed']['ms_per_doc']} ms/doc)"
+    # A fresh process, not benchmark_adapter(): scoring in this one came back
+    # 0% for a healthy adapter (the same weights score ~97% standalone), so
+    # state left behind by training evidently poisons inference.
+    console.print(f"[cyan]Benchmarking {adapter_label(base, next_version)}...[/cyan]")
+    result = subprocess.run(
+        [sys.executable, "-m", "src.core.benchmark", "--base-model", base],
+        check=False,
     )
+    if result.returncode != 0:
+        console.print(
+            "[bold red]Benchmark failed; rerun "
+            f"`python -m src.core.benchmark --base-model {base}`.[/bold red]"
+        )
 
 
 def main():

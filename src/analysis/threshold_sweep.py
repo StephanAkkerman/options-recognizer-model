@@ -12,7 +12,6 @@ and is unfairly penalised by the default 0.75 threshold.
 """
 
 import argparse
-import copy
 import os
 
 from rich.console import Console
@@ -25,7 +24,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
-from src.core.models import base_label, resolve_bases
+from src.core.models import base_label, load_adapted, resolve_bases
 from src.core.benchmark import (
     DEFAULT_LABELS,
     DEFAULT_TEST_FOLDER,
@@ -131,8 +130,7 @@ def main():
             base_model, device = load_base_model(base)
             for _, name, adapter_path in [c for c in configs if c[0] == base]:
                 if adapter_path and os.path.exists(adapter_path):
-                    model = copy.deepcopy(base_model)
-                    model.load_adapter(adapter_path)
+                    model = load_adapted(base_model, adapter_path)
                 else:
                     model = base_model
 

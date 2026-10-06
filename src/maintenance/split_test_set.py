@@ -13,7 +13,7 @@ Run:
     python -m src.maintenance.split_test_set            # writes test/, prints summary
     python -m src.maintenance.split_test_set --seed 7   # different deterministic split
 
-After running, re-benchmark every adapter (`python -m src.core.benchmark --all`)
+After running, re-benchmark every adapter (`python -m src.core.benchmark`)
 because a new test set has a different hash — old cached results don't apply.
 """
 
@@ -174,7 +174,7 @@ def main():
         raise SystemExit(1)
 
     console.print(
-        "\n[green]Next:[/green] run `python -m src.core.benchmark --all` to rescore "
+        "\n[green]Next:[/green] run `python -m src.core.benchmark` to rescore "
         "all adapters against the new test set."
     )
 

@@ -1,8 +1,8 @@
 """Benchmark GLiNER2 adapters on the held-out test set.
 
-    python -m src.core.benchmark                              # every base model, latest adapter each
+    python -m src.core.benchmark                              # every base model, every adapter version
     python -m src.core.benchmark --base-model gliner2.5-small-v1
-    python -m src.core.benchmark --all                        # every adapter version
+    python -m src.core.benchmark --latest                     # latest adapter only
     python -m src.core.benchmark --no-cache                   # ignore cached results
 
 Scoring is **exact-span**: a prediction is a true positive only if its absolute
@@ -14,7 +14,6 @@ Results are cached per ``(adapter, test_set_hash)`` in ``models/benchmark_result
 """
 
 import argparse
-import copy
 import glob
 import json
 import os
@@ -39,6 +38,7 @@ from src.core.models import (
     adapter_label,
     base_label,
     parse_adapter_dir,
+    load_adapted,
     load_extractor,
     resolve_bases,
 )
@@ -480,8 +480,7 @@ def benchmark_adapter(
         device = next(base_model.parameters()).device.type
 
     if adapter_path and os.path.exists(adapter_path):
-        model = copy.deepcopy(base_model)
-        model.load_adapter(adapter_path)
+        model = load_adapted(base_model, adapter_path)
     else:
         model = base_model
 
@@ -590,10 +589,12 @@ def main():
         "Use when the model weights or evaluation logic change.",
     )
     parser.add_argument(
-        "--all",
+        "--latest",
         action="store_true",
-        help="Benchmark every adapter version instead of only the latest per base.",
+        help="Show only the latest adapter per base instead of every version "
+        "(older versions come from the cache, so listing them is cheap).",
     )
+    parser.add_argument("--all", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--batch-size", type=int, default=32)
     args = parser.parse_args()
 
@@ -622,7 +623,7 @@ def main():
 
     bases = resolve_bases(args.base_model)
     adapters = get_all_adapters(bases=bases)
-    if not args.all:
+    if args.latest:
         adapters = latest_adapters(adapters)
 
     # (base, display name, adapter path) in display order.
@@ -668,8 +669,7 @@ def main():
                 )
                 for _, name, adapter_path in [c for c in to_evaluate if c[0] == base]:
                     if adapter_path and os.path.exists(adapter_path):
-                        model = copy.deepcopy(shared_base_model)
-                        model.load_adapter(adapter_path)
+                        model = load_adapted(shared_base_model, adapter_path)
                     else:
                         model = shared_base_model
 

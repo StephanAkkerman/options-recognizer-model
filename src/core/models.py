@@ -5,9 +5,10 @@ accuracy for speed by picking a smaller base. A slug is the model name without
 the org prefix and doubles as the adapter-folder / Hub-repo suffix.
 """
 
+import copy
 import re
 
-from src.core.spans import AlnumBoundarySplitter
+from src.core.spans import CURRENT_SPLITTER, adapter_splitter_name, make_splitter
 
 ADAPTER_PREFIX = "options_adapter"
 HUB_REPO_PREFIX = "options-recognizer"
@@ -104,5 +105,17 @@ def load_extractor(slug, **kwargs):
     model = AutoExtractor.from_pretrained(BASE_MODELS[slug]["hf_id"], **kwargs)
     # Train, benchmark and analysis all load through here, so they share one
     # tokenization; see AlnumBoundarySplitter for why the default is unusable.
-    model.set_word_splitter(AlnumBoundarySplitter())
+    model.set_word_splitter(make_splitter(CURRENT_SPLITTER))
+    return model
+
+
+def load_adapted(base_model, adapter_path):
+    """Copy of `base_model` with the adapter loaded and its own splitter set.
+
+    The splitter is part of the adapter: scoring an older adapter with the
+    current one silently wrecks its recall.
+    """
+    model = copy.deepcopy(base_model)
+    model.load_adapter(adapter_path)
+    model.set_word_splitter(make_splitter(adapter_splitter_name(adapter_path)))
     return model
