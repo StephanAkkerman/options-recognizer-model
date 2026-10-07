@@ -71,3 +71,12 @@ def test_adapter_splitter_name_reads_config_and_defaults_to_stock(tmp_path):
 def test_every_registered_splitter_is_buildable():
     for name in SPLITTERS:
         assert make_splitter(name)
+
+
+def test_entity_must_be_whole_tokens_in_chunk():
+    from src.core.train import entity_in_chunk
+
+    assert entity_in_chunk("1.58", "$1.6M 1.58avg")
+    assert entity_in_chunk("375", "$TSLA 375C")
+    assert not entity_in_chunk("65", "$DRAM: Jan 65/70 calls")
+    assert not entity_in_chunk("1", "$1.2M")

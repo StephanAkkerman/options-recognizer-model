@@ -39,7 +39,7 @@ from src.core.models import (
     load_extractor,
     resolve_bases,
 )
-from src.core.spans import CURRENT_SPLITTER, bounded_pattern
+from src.core.spans import CURRENT_SPLITTER, bounded_pattern, make_splitter
 
 console = Console()
 
@@ -95,7 +95,26 @@ def entity_in_chunk(entity_text, chunk):
     character-class aware (see `bounded_pattern`), which also lets the "p" of
     a fused "210p" count as present.
     """
-    return re.search(bounded_pattern(entity_text), chunk) is not None
+    if re.search(bounded_pattern(entity_text), chunk) is None:
+        return False
+    return _contains_tokens(chunk, entity_text)
+
+
+def _word_tokens(text):
+    return [tok for tok, _, _ in make_splitter(CURRENT_SPLITTER)(text)]
+
+
+def _contains_tokens(chunk, entity_text):
+    """Whether `entity_text` is a run of whole splitter tokens in `chunk`.
+
+    The boundary-architecture bases (GLiNER2.5) raise on a labeled entity they
+    cannot find as whole tokens (the "65" of "Jan 65/70 calls", which tokenizes
+    as one "65/70"), so such mentions must be dropped before training.
+    """
+    needle = _word_tokens(entity_text)
+    hay = _word_tokens(chunk)
+    n = len(needle)
+    return n > 0 and any(hay[i : i + n] == needle for i in range(len(hay) - n + 1))
 
 
 def task_to_samples(task):
