@@ -62,7 +62,7 @@ Run everything from the repo root with `python -m` (needs `pip install -r requir
 
 ### Model sizes
 
-Adapters are trained for each base in `src/core/models.py` (`gliner2.5-small-v1`, `gliner2.5-base-v1`, `gliner2-base-v1`, `gliner2-large-v1`) on identical data, splits and seed, and each is published to its own repo, `<owner>/options-recognizer-<base>`. Pick a smaller base for speed or a larger one for accuracy; the benchmark table shows F1 next to base size and ms/doc. Each repo ships a `recognizer_config.json` (base model, labels, descriptions, threshold) so it loads without this codebase.
+Adapters are trained for each base in `src/core/models.py` (`gliner2.5-small-v1`, `gliner2.5-base-v1`, `gliner2-base-v1`, `gliner2-large-v1`) on identical data, splits and seed, and each is published to its own repo, `<owner>/options-recognizer-<base>` (without the `-v1` suffix). Pick a smaller base for speed or a larger one for accuracy; the benchmark table shows F1 next to base size and ms/doc. Each repo ships a `recognizer_config.json` (base model, labels, descriptions, threshold) so it loads without this codebase.
 
 The entity labels and their GLiNER2 descriptions live in `src/core/labels.py`.
 

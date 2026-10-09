@@ -151,7 +151,7 @@ def test_model_registry_roundtrips():
     assert parse_adapter_dir("options_adapter_v1") is None
     assert (
         default_repo_id("me", "gliner2-base-v1")
-        == "me/options-recognizer-gliner2-base-v1"
+        == "me/options-recognizer-gliner2-base"
     )
 
 

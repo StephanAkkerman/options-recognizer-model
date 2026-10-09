@@ -89,7 +89,9 @@ def base_label(slug):
 
 
 def default_repo_id(owner, slug):
-    return f"{owner}/{HUB_REPO_PREFIX}-{slug}"
+    """Hub repo for a base; the base's own ``-v1`` suffix is dropped so a better
+    adapter simply overwrites the repo's contents."""
+    return f"{owner}/{HUB_REPO_PREFIX}-{re.sub(r'-v\d+$', '', slug)}"
 
 
 def load_extractor(slug, **kwargs):
